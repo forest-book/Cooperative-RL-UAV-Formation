@@ -1,18 +1,8 @@
 <!-- I want to review in Japanese. -->
 ## 修正内容
 
-### PR Agent
-
-#### Summary
-<!-- Do not edit -->
-pr_agent:summary
-
-#### Walkthrough
-
-<!-- DO NOT EDIT -->
-pr_agent:walkthrough
-
 ## 動作確認項目
+
 - [ ] xxxxxx
 
 ## セルフレビュー
