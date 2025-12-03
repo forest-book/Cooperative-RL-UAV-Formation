@@ -43,11 +43,7 @@ class MainController:
         for uav_id, position in initial_positions.items():
             self.uavs.append(UAV(uav_id=uav_id, initial_position=position))
 
-        # 各UAV機の隣接機を設定
-        neighbors_setting = self.params['NEIGHBORS']
-        for uav in self.uavs:
-            if uav.id in neighbors_setting:
-                uav.neighbors = neighbors_setting[uav.id]
+
 
         # k=0での直接推定値を設定(直接推定値の初期化)
         # 隣接機に対してのみ初期化
