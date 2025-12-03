@@ -1,14 +1,10 @@
 import csv
 import json
-import pandas as pd
-import matplotlib.pyplot as plt
-from collections import defaultdict
 import numpy as np
 from typing import List, Dict, Optional
+from collections import defaultdict
 import datetime
 
-# データ保存時の日時
-current_time = datetime.datetime.now()
 
 class DataLogger:
     """
@@ -18,6 +14,7 @@ class DataLogger:
         self.timestamp: List[float] = []
         self.uav_trajectories: Dict[str, List[np.ndarray]] = defaultdict(list)
         self.fused_RL_errors: Dict[str, List[float]] = defaultdict(list)
+        self._creation_time = datetime.datetime.now()  # インスタンス生成時の時刻
 
     def logging_timestamp(self, time: float):
         self.timestamp.append(time)
@@ -110,7 +107,7 @@ class DataLogger:
         
         Args:
             transient_time (float): 過渡状態として除外する時間 [秒]
-            filename (str): 保存するファイル名（Noneの場合は自動生成）
+            filename (Optional[str]): 保存するファイル名（Noneの場合は自動生成）
             format (str): 保存形式 ('json' または 'txt')
             
         Returns:
@@ -120,7 +117,7 @@ class DataLogger:
         
         # ファイル名が指定されていない場合は自動生成
         if filename is None:
-            timestamp_str = current_time.strftime(r'%Y-%m-%d-%H-%M-%S')
+            timestamp_str = self._creation_time.strftime(r'%Y-%m-%d-%H-%M-%S')
             if format == 'json':
                 filename = f'fused_RL_error_statistics_{timestamp_str}.json'
             else:
@@ -133,7 +130,7 @@ class DataLogger:
             # NumPy型をPython標準型に変換
             json_data = {
                 'transient_time': transient_time,
-                'timestamp': current_time.strftime(r'%Y-%m-%d %H:%M:%S'),
+                'timestamp': self._creation_time.strftime(r'%Y-%m-%d %H:%M:%S'),
                 'statistics': {}
             }
             
@@ -152,7 +149,7 @@ class DataLogger:
             with open(dir_path, 'w', encoding='utf-8') as f:
                 f.write("="*70 + "\n")
                 f.write(f"  融合RL推定誤差の統計 ({transient_time}秒後から安定状態)\n")
-                f.write(f"  生成日時: {current_time.strftime(r'%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"  生成日時: {self._creation_time.strftime(r'%Y-%m-%d %H:%M:%S')}\n")
                 f.write("="*70 + "\n\n")
                 f.write(f"{'UAV Pair':<10} | {'Mean Error (m)':<18} | {'Variance':<15} | {'Std Dev (m)':<15}\n")
                 f.write("-" * 70 + "\n")
@@ -174,13 +171,16 @@ class DataLogger:
         print(f"Statistics successfully saved to {dir_path}")
         return dir_path
 
-    def save_UAV_trajectories_data_to_csv(self, filename: str = f'uav_trajectories_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.csv'):
+    def save_UAV_trajectories_data_to_csv(self, filename: Optional[str] = None):
         """
         複数のUAVの軌道(2D)をcsv保存する関数
 
         Args:
-            filename (str): 保存するCSVファイル名
+            filename (Optional[str]): 保存するCSVファイル名（Noneの場合は自動生成）
         """
+        if filename is None:
+            filename = f'uav_trajectories_{self._creation_time.strftime(r"%Y-%m-%d-%H-%M-%S")}.csv'
+        
         dir_path = "../data/csv/trajectories/" + filename
         with open(dir_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -193,14 +193,18 @@ class DataLogger:
                 row = [t] + [pos[0] for pos in positions] + [pos[1] for pos in positions]
                 writer.writerow(row)
         print(f"Data successfully saved to {filename}")
+        return filename
 
-    def save_fused_RL_errors_to_csv(self, filename: str = f'fused_RL_error_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.csv'):
+    def save_fused_RL_errors_to_csv(self, filename: Optional[str] = None):
         """
         相対自己位置の融合推定誤差をcsv保存する関数
 
         Args:
-            filename (str): 保存するCSVファイル名
+            filename (Optional[str]): 保存するCSVファイル名（Noneの場合は自動生成）
         """
+        if filename is None:
+            filename = f'fused_RL_error_{self._creation_time.strftime(r"%Y-%m-%d-%H-%M-%S")}.csv'
+        
         dir_path = "../data/csv/RL_errors/" + filename
         with open(dir_path, mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -213,93 +217,12 @@ class DataLogger:
                 row = [t] + list(errors)
                 writer.writerow(row)
         print(f"Data successfully saved to {filename}")
+        return filename
 
-class Plotter:
-    @staticmethod
-    def plot_UAV_trajectories_from_csv(filename: str = f'uav_trajectories_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.csv'):
-        """
-        複数のUAVの軌跡を2Dプロットする関数
+    def get_latest_trajectory_filename(self) -> str:
+        """最新の軌道データファイル名を取得"""
+        return f'uav_trajectories_{self._creation_time.strftime(r"%Y-%m-%d-%H-%M-%S")}.csv'
 
-        Args:
-            filename (str): 読み込むCSVファイル名
-        """
-        try:
-            # Read CSV file
-            file_path = f"../data/csv/trajectories/{filename}"
-            data = pd.read_csv(file_path)
-
-            plt.figure(figsize=(10, 8))
-            for i in range(1, 7):
-                x_positions = data[f'uav{i}_true_pos_x']
-                y_positions = data[f'uav{i}_true_pos_y']
-                plt.plot(x_positions, y_positions, label=f'UAV {i}')
-                plt.scatter(x_positions.iloc[0], y_positions.iloc[0], marker='o', label=f'UAV {i} Start')
-                plt.scatter(x_positions.iloc[-1], y_positions.iloc[-1], marker='x', label=f'UAV {i} End')
-
-            plt.title('UAV Trajectories from CSV')
-            plt.xlabel('X position (m)')
-            plt.ylabel('Y position (m)')
-            plt.legend()
-            plt.grid(True)
-            plt.axis('equal')
-            plt.savefig(f'../data/graph/trajectories/uav_trajectories_graph_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.png')
-            print(f"Graph successfully saved to uav_trajectories_graph_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.png")
-            plt.show()
-
-        except FileNotFoundError:
-            print(f"Error: The file {filename} was not found.")
-        except Exception as e:
-            print(f"An error occurred while plotting: {e}")
-
-    @staticmethod
-    def plot_fused_RL_errors_from_csv(filename: str = f'fused_RL_error_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.csv'):
-        """
-        Plot fusion estimation errors from a CSV file.
-
-        Parameters:
-            filename (str): Name of the CSV file to read.
-        """
-
-        # Read CSV file
-        file_path = f"../data/csv/RL_errors/{filename}"
-        data = pd.read_csv(file_path)
-
-        fig, ax = plt.subplots(figsize=(12, 6))
-        colors = {2: 'c', 3: 'b', 4: 'g', 5: 'r', 6: 'm'}
-
-        for i in range(2, 7):
-            errors = data[f'uav{i}_fused_error']
-            valid_times = data['time'][~errors.isna()]
-            valid_errors = errors[~errors.isna()]
-
-            if not valid_errors.empty:
-                ax.plot(valid_times, valid_errors, 
-                        label=rf'$||\pi_{{{i}1}} - \chi_{{{i}1}}||$', 
-                        color=colors.get(i, 'k'))
-
-        ax.set_title('Consensus-based RL Fusion Estimation', fontsize=16, fontweight='bold')
-        ax.set_xlabel('$k$ (sec)', fontsize=14)
-        ax.set_ylabel(r'$||\pi_{ij}(k) - \chi_{ij}(k)||$ (m)', fontsize=14)
-        ax.set_ylim(0, 50.0)
-        ax.legend()
-        ax.grid(True)
-
-        # 図4(e)のズームインした図を挿入
-        axins = ax.inset_axes((0.5, 0.5, 0.4, 0.4))
-        for i in range(2, 7):
-             errors = data[f'uav{i}_fused_error']
-             valid_times = [t for t, e in zip(data['time'], errors) if e is not None]
-             valid_errors = [e for e in errors if e is not None]
-             if valid_errors:
-                axins.plot(valid_times, valid_errors, color=colors.get(i, 'k'))
-        axins.set_xlim(100, 150) # 論文のズーム範囲に合わせる
-        axins.set_ylim(0, 0.6)
-        axins.grid(True)
-        ax.indicate_inset_zoom(axins, edgecolor="black") # ズーム箇所を四角で表示
-
-        #todo グラフズーム範囲の修正
-        plt.savefig(f'../data/graph/RL_errors/fused_RL_errors_graph_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.png')
-        print(f"Graph successfully saved to fused_RL_errors_graph_{current_time.strftime(r'%Y-%m-%d-%H-%M-%S')}.png")
-        
-        plt.show()
-
+    def get_latest_error_filename(self) -> str:
+        """最新のエラーデータファイル名を取得"""
+        return f'fused_RL_error_{self._creation_time.strftime(r"%Y-%m-%d-%H-%M-%S")}.csv'

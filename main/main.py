@@ -1,9 +1,11 @@
 import numpy as np
 from typing import List, Tuple
 
-from quadcopter import UAV, Scenario
+from quadcopter import UAV
 from estimator import Estimator
-from data_handler import Plotter, DataLogger
+from data_logger import DataLogger
+from plotter import Plotter
+from config_loader import ConfigLoader
 
 class MainController:
     """アプリケーション全体を管理し，メインループを実行する"""
@@ -243,42 +245,25 @@ class MainController:
             self.show_simulation_progress(loop=loop)
 
         # ロギングした推定誤差をcsv出力
-        self.data_logger.save_fused_RL_errors_to_csv()
-        self.data_logger.save_UAV_trajectories_data_to_csv()
-        Plotter.plot_UAV_trajectories_from_csv()
-        Plotter.plot_fused_RL_errors_from_csv()
+        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
+        error_filename = self.data_logger.save_fused_RL_errors_to_csv()
+        
+        # グラフ生成
+        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
+        Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        
+        # 統計情報の表示と保存
         self.data_logger.print_fused_RL_error_statistics(transient_time=10.0)
         self.data_logger.save_fused_RL_error_statistics(transient_time=10.0)
         self.data_logger.save_fused_RL_error_statistics(transient_time=10.0, format='txt')
 
 if __name__ == '__main__':
-    simulation_params = {
-        'DURATION': 300,
-        'T': 0.05,  # サンプリング周期 T
-        'GAMMA': 0.01, # ゲイン γ
-        'TARGET_ID': 1, # 推定目標
-        'EVENT': Scenario.SUDDEN_TURN, #シナリオ選択
-        'INITIAL_POSITIONS': {
-            1: [0, 0], 
-            2: [2, -30], 
-            3: [20, -15],
-            4: [-20, 8], 
-            5: [-14, 8], 
-            6: [-10, -30]
-        },
-        'NEIGHBORS': { 
-            1: [],         #UAV1の隣接機(推定対象のため無し)
-            2: [1],        #UAV2の隣接機        
-            3: [1, 4, 5],  #UAV3の隣接機      
-            4: [1],        #UAV4の隣接機
-            5: [3, 4],     #UAV5の隣接機
-            6: [4]         #UAV6の隣接機
-        },
-        'NOISE': { 
-            'delta_bar': 0.5,
-            'dist_bound': 0.05
-        }
-    }
+    # 設定ファイルから読み込む
+    # JSON形式
+    #simulation_params = ConfigLoader.load('../config/simulation_config.json')
+    
+    # YAML形式
+    simulation_params = ConfigLoader.load('../config/simulation_config.yaml')
 
     controller = MainController(simulation_params)
     controller.run()
