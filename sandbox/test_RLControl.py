@@ -52,7 +52,7 @@ def calc_RL_based_control_input(
     rl_correction_sum = np.zeros_like(pi_ij_i_k, dtype=float)
     for i in range(num_neighbors):
         d_ij = rel_distances[i]          # 現在の距離 d
-        d_star = desired_distances[i]    # 目標距離 d*
+        d_star = desired_dists_list[i]   # 目標距離 d* (リストから取得)
         pi_ij = pi_ij_i_k[i]             # 推定相対位置ベクトル pi
 
         # 距離誤差スカラ: (d^2 - d*^2)
@@ -66,15 +66,15 @@ def calc_RL_based_control_input(
     return vel_i_k_plus_1 
 
 # テストデータ
-v_curr = np.array([0.5, 0.0])  # 自機の現在の速度
+v_curr = np.array([0.0, 0.0])  # 自機の現在の速度
 
 # 隣接機が2機いると仮定
 # 1. 相対速度 v_ij (観測値)
-rel_vels = [np.array([0.1, 0.1]), np.array([-0.2, 0.0])]
+rel_vels = [np.array([0.0, 0.0]), np.array([0.0, 0.0])]
 # 2. 現在の距離 d_ij (観測値)
-dists = [14.0, 16.0]
+dists = [58.30951895, 113.137085]
 # 3. 融合推定値 pi (推定値)
-pis = [np.array([10.0, 10.0]), np.array([-10.0, 5.0])]
+pis = [np.array([50.0, 30.0]), np.array([80.0, 80.0])]
 
 # パラメータ
 target_d = 15.0  # 目標距離
@@ -84,14 +84,14 @@ g2 = 0.014
 
 # 計算実行
 v_next = calc_RL_based_control_input(
-    current_velocity=v_curr,
-    relative_velocities=rel_vels,
-    current_distances=dists,
-    fused_estimates=pis,
-    target_distances=target_d,
+    vel_i_k=v_curr,
+    rel_v_ij_i_k=rel_vels,
+    rel_distances=dists,
+    pi_ij_i_k=pis,
+    desired_distances=target_d,
     T=dt,
-    gamma_1=g1,
-    gamma_2=g2
+    gamma1=g1,
+    gamma2=g2
 )
 
 print(f"Current Velocity: {v_curr}")
