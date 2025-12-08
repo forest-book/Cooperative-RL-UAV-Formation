@@ -41,7 +41,7 @@ def calc_RL_based_control_input(
     
     # 第2項: 速度合意項
     # gamma_1 * T * Σ v_{i,k}^{ij}
-    rel_velocity_sum = np.zeros_like(rel_v_ij_i_k, dtype=float)
+    rel_velocity_sum = np.zeros_like(vel_i_k, dtype=float)
     for v_ij in rel_v_ij_i_k:
         rel_velocity_sum += v_ij
     velocity_consensus_term = gamma1 * T * rel_velocity_sum
@@ -49,7 +49,7 @@ def calc_RL_based_control_input(
 
     # 第3項: フォーメーション制御項
     # gamma_2 * T * Σ (d_{k}^{ij}^2 - d_{ij}^{*2}) * pi_{i,k}^{ij}
-    rl_correction_sum = np.zeros_like(pi_ij_i_k, dtype=float)
+    rl_correction_sum = np.zeros_like(vel_i_k, dtype=float)
     for i in range(num_neighbors):
         d_ij = rel_distances[i]          # 現在の距離 d
         d_star = desired_dists_list[i]   # 目標距離 d* (リストから取得)
@@ -72,9 +72,9 @@ v_curr = np.array([0.0, 0.0])  # 自機の現在の速度
 # 1. 相対速度 v_ij (観測値)
 rel_vels = [np.array([0.0, 0.0]), np.array([0.0, 0.0])]
 # 2. 現在の距離 d_ij (観測値)
-dists = [58.30951895, 113.137085]
+dists = [58.30951895, 58.30951895]
 # 3. 融合推定値 pi (推定値)
-pis = [np.array([50.0, 30.0]), np.array([80.0, 80.0])]
+pis = [np.array([-50.0, -30.0]), np.array([30.0, 50.0])]
 
 # パラメータ
 target_d = 15.0  # 目標距離
