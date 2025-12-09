@@ -66,15 +66,15 @@ def calc_RL_based_control_input(
     return vel_i_k_plus_1 
 
 # テストデータ
-v_curr = np.array([0.0, 0.0])  # 自機の現在の速度
+v_curr = np.array([815.325, 770.875])  # 自機の現在の速度
 
 # 隣接機が2機いると仮定
 # 1. 相対速度 v_ij (観測値)
-rel_vels = [np.array([0.0, 0.0]), np.array([0.0, 0.0])]
+rel_vels = [np.array([-859.775, -726.425]), np.array([-1586.2, -1586.2])]
 # 2. 現在の距離 d_ij (観測値)
-dists = [58.30951895, 58.30951895]
+dists = [9.440118015, 0.975807358]
 # 3. 融合推定値 pi (推定値)
-pis = [np.array([-50.0, -30.0]), np.array([30.0, 50.0])]
+pis = [np.array([7.01125, -6.32125]), np.array([0.69, 0.69])]
 
 # パラメータ
 target_d = 15.0  # 目標距離
