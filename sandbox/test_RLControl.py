@@ -50,10 +50,10 @@ def calc_RL_based_control_input(
     # 第3項: フォーメーション制御項
     # gamma_2 * T * Σ (d_{k}^{ij}^2 - d_{ij}^{*2}) * pi_{i,k}^{ij}
     rl_correction_sum = np.zeros_like(vel_i_k, dtype=float)
-    for i in range(num_neighbors):
-        d_ij = rel_distances[i]          # 現在の距離 d
-        d_star = desired_dists_list[i]   # 目標距離 d* (リストから取得)
-        pi_ij = pi_ij_i_k[i]             # 推定相対位置ベクトル pi
+    for j in range(num_neighbors):
+        d_ij = rel_distances[j]          # 現在の距離 d
+        d_star = desired_dists_list[j]   # 目標距離 d* (リストから取得)
+        pi_ij = pi_ij_i_k[j]             # 推定相対位置ベクトル pi
 
         # 距離誤差スカラ: (d^2 - d*^2)
         dist_error_scalar = (d_ij ** 2) - (d_star ** 2)
