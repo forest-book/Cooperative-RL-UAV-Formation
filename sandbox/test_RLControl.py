@@ -17,7 +17,7 @@ def calc_RL_based_control_input(
         vel_i_k (np.ndarray): 自機の現在の速度ベクトル v_{i,k}
         rel_v_ij_i_k (List[np.ndarray]): 隣接機との現在の相対速度ベクトルのリスト
         rel_distances (List[float]): 隣接機との現在の距離のリスト
-        desired_distances (List[float]): 隣接UAVへの望ましい相対距離のリスト
+        desired_distances (Union[float, List[float]]): 隣接UAVへの望ましい相対距離（スカラまたはリスト）
         pi_ij_i_k (List[np.ndarray]): 隣接機への融合RL推定位置ベクトルのリスト
         T (float): サンプリング周期
         gamma1 (float): 速度減衰ゲイン
