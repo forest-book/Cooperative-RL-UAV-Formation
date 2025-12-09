@@ -39,8 +39,8 @@ def calc_RL_based_control_input(
             raise ValueError("desired distance list must match the number of neighbors.")
         
     
-    # 第2項: 速度合意項
-    # gamma_1 * T * Σ v_{i,k}^{ij}
+    # 第2項: 相対速度合意項
+    # gamma_1 * T * Σ v_{i,k}^{ij} （隣接機jに対する相対速度v_{ij}の合計）
     rel_velocity_sum = np.zeros_like(vel_i_k, dtype=float)
     for v_ij in rel_v_ij_i_k:
         rel_velocity_sum += v_ij
