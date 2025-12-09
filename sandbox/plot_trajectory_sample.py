@@ -101,4 +101,5 @@ def plot_trajectory_graph(csv_path: str):
 
 if __name__ == "__main__":
     target_csv = "sample_trajectories.csv"
-    plot_trajectory_graph(target_csv)
+    target_csv_alt = "sample_trajectories_curved.csv"
+    plot_trajectory_graph(target_csv_alt)
