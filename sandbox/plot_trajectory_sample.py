@@ -60,25 +60,27 @@ def plot_trajectory_graph(csv_path: str):
         x_col = f'{u_id}_true_pos_x'
         y_col = f'{u_id}_true_pos_y'
         
-        if x_col in data.columns and y_col in data.columns:
-            x = data[x_col]
-            y = data[y_col]
-            color = uav_colors.get(u_id, 'black')
-            
-            # 軌跡のプロット
-            # 論文に合わせてラベルを調整 (例: uav1 -> UAV0)
-            # ここではシンプルにそのまま表示します
-            label_name = u_id.upper() 
-            plt.plot(x, y, label=label_name, color=color)
-            
-            # 始点マーカー (白抜きの丸)
-            plt.scatter(x.iloc[0], y.iloc[0], marker='o', color=color, s=40, facecolors='none', edgecolors=color, zorder=5)
-            
-            # 終点マーカー (塗りつぶしの菱形)
-            plt.scatter(x.iloc[-1], y.iloc[-1], marker='D', color=color, s=40, zorder=5)
-            
-            # 終点付近にテキスト注釈を追加
-            plt.text(x.iloc[-1] + 3, y.iloc[-1], label_name, fontsize=9, color=color, va='center')
+        if x_col not in data.columns or y_col not in data.columns:
+            print(f"Warning: Missing columns for {u_id} (expected '{x_col}', '{y_col}')")
+            continue
+        x = data[x_col]
+        y = data[y_col]
+        color = uav_colors.get(u_id, 'black')
+        
+        # 軌跡のプロット
+        # 論文に合わせてラベルを調整 (例: uav1 -> UAV0)
+        # ここではシンプルにそのまま表示します
+        label_name = u_id.upper() 
+        plt.plot(x, y, label=label_name, color=color)
+        
+        # 始点マーカー (白抜きの丸)
+        plt.scatter(x.iloc[0], y.iloc[0], marker='o', color=color, s=40, facecolors='none', edgecolors=color, zorder=5)
+        
+        # 終点マーカー (塗りつぶしの菱形)
+        plt.scatter(x.iloc[-1], y.iloc[-1], marker='D', color=color, s=40, zorder=5)
+        
+        # 終点付近にテキスト注釈を追加
+        plt.text(x.iloc[-1] + 3, y.iloc[-1], label_name, fontsize=9, color=color, va='center')
 
     # 4. タイトル・軸ラベル設定 (論文Fig 7準拠)
     plt.title('Trajectories of 3 UAVs')
