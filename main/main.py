@@ -35,6 +35,34 @@ class MainController:
         """融合推定値の辞書キーを生成する"""
         return f"pi_{from_uav_id}_{to_uav_id}"
 
+    def initialize_direct_estimates(self):
+        """直接推定値の初期化（乱数付与）"""
+        noise_bound = self.params['NOISE']['initialization_bound']  # 一様乱数の範囲を設定
+        for uav in self.uavs:
+            for neighbor_id in uav.neighbors:
+                neighbor_uav = self.get_uav_by_id(neighbor_id)
+                true_initial_rel_pos = neighbor_uav.true_position - uav.true_position
+                # 一様乱数を生成して真値に加算
+                noise = np.random.uniform(-noise_bound, noise_bound, size=true_initial_rel_pos.shape)
+                noisy_initial_rel_pos = true_initial_rel_pos + noise
+                key = self.make_direct_estimate_key(uav.id, neighbor_id)
+                uav.direct_estimates[key].append(noisy_initial_rel_pos.copy())
+
+    def initialize_fused_estimates(self):
+        """融合推定値の初期化（乱数付与）"""
+        noise_bound = self.params['NOISE']['initialization_bound']  # 一様乱数の範囲を設定
+        target_id = self.params['TARGET_ID']
+        target_uav = self.get_uav_by_id(target_id)
+        for uav_i in self.uavs:
+            if uav_i.id == target_id:
+                continue  # TARGET自身は自分への推定を行わない
+            true_initial_rel_pos: np.ndarray = target_uav.true_position - uav_i.true_position
+            # 一様乱数を生成して真値に加算
+            noise = np.random.uniform(-noise_bound, noise_bound, size=true_initial_rel_pos.shape)
+            noisy_initial_rel_pos = true_initial_rel_pos + noise
+            key = self.make_fused_estimate_key(uav_i.id, target_id)
+            uav_i.fused_estimates[key].append(noisy_initial_rel_pos.copy())
+
     def initialize(self):
         """システムの初期化"""
         print("initialize simulation settings...")
@@ -51,23 +79,11 @@ class MainController:
 
         # k=0での直接推定値を設定(直接推定値の初期化)
         # 隣接機に対してのみ初期化
-        for uav in self.uavs:
-            for neighbor_id in uav.neighbors:
-                neighbor_uav = self.get_uav_by_id(neighbor_id)
-                true_initial_rel_pos = neighbor_uav.true_position - uav.true_position
-                key = self.make_direct_estimate_key(uav.id, neighbor_id)
-                uav.direct_estimates[key].append(true_initial_rel_pos.copy())
+        self.initialize_direct_estimates()
 
         # k=0での融合推定値を設定(融合推定値の初期化)
         # UAV_i(i=2~6)から見たUAV1の相対位置を融合推定
-        target_id = self.params['TARGET_ID']
-        target_uav = self.get_uav_by_id(target_id)
-        for uav_i in self.uavs:
-            if uav_i.id == target_id:
-                continue  # TARGET自身は自分への推定を行わない
-            true_initial_rel_pos: np.ndarray = target_uav.true_position - uav_i.true_position
-            key = self.make_fused_estimate_key(uav_i.id, target_id)
-            uav_i.fused_estimates[key].append(true_initial_rel_pos.copy())
+        self.initialize_fused_estimates()
 
         # 推定式はステップk(自然数)毎に状態を更新するため
         self.loop_amount = int(self.params['DURATION'] / self.params['T'])
@@ -253,9 +269,9 @@ class MainController:
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
         
         # 統計情報の表示と保存
-        self.data_logger.print_fused_RL_error_statistics(transient_time=10.0)
-        self.data_logger.save_fused_RL_error_statistics(transient_time=10.0)
-        self.data_logger.save_fused_RL_error_statistics(transient_time=10.0, format='txt')
+        self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
+        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
+        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
