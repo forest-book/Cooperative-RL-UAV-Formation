@@ -2,15 +2,15 @@
 
 # シミュレーション時間設定
 DURATION: 300  # シミュレーション時間 [秒]
-T: 0.05        # サンプリング周期 [秒]
+T: 0.02        # サンプリング周期 [秒]
 
 # 推定アルゴリズム設定
-GAMMA: 0.01    # ゲイン γ
+GAMMA: 0.06    # ゲイン γ
 TARGET_ID: 1   # 推定目標UAV ID
 
 # シナリオ設定
 # 選択肢: CONTINUOUS, SUDDEN_TURN
-EVENT: SUDDEN_TURN
+EVENT: CONTINUOUS
 
 # UAV初期位置 [x, y] (m)
 INITIAL_POSITIONS:
@@ -34,3 +34,4 @@ NEIGHBORS:
 NOISE:
   delta_bar: 0.5   # 速度ノイズ幅 [m/s]
   dist_bound: 0.05 # 距離ノイズ幅 [m]
+  initialization_bound: 25
