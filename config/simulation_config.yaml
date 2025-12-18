@@ -34,4 +34,4 @@ NEIGHBORS:
 NOISE:
   delta_bar: 0.5   # 速度ノイズ幅 [m/s]
   dist_bound: 0.05 # 距離ノイズ幅 [m]
-  initialization_bound: 25
+  initialization_bound: 25  # 初期推定ノイズ幅 [m]
