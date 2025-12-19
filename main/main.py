@@ -85,30 +85,14 @@ class MainController:
         # UAVインスタンス化と初期位置・隣接機の設定
         self.initialize_uav_setting()
 
-        for uav in self.uavs:
-            print(f"uav_{uav.id}")
-            print(uav.id)
-            print(uav.neighbors)
-            print(uav.true_position)
-            print(uav.true_velocity)
-
         # k=0での直接推定値を設定(直接推定値の初期化)
         # 隣接機に対してのみ初期化
         self.initialize_direct_estimates()
-
-        for uav in self.uavs:
-            print(f"uav_{uav.id}")
-            print(uav.direct_estimates)
 
         # k=0での融合推定値を設定(融合推定値の初期化)
         # UAV_i(自機)から見たUAV_j(自機以外のすべてのUAV)の相対位置を融合推定
         self.initialize_fused_estimates()
 
-        for uav in self.uavs:
-            print(f"uav_{uav.id}")
-            print(uav.fused_estimates)
-
-        return
         # 推定式はステップk(自然数)毎に状態を更新するため
         self.loop_amount = int(self.params['DURATION'] / self.params['T'])
 
