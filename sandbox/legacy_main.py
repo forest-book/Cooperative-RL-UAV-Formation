@@ -185,7 +185,7 @@ class MainController:
                     ) # 次のステップ(k=loop + 1)の時の相対位置を直接推定
                     
                     # uav_iは直接推定値を持っている
-                    # keyは157行目で生成済みなので再利用
+                    # keyは175行目で生成済みなので再利用
                     uav_i.direct_estimates[key].append(next_direct.copy())
 
             # 2.融合推定の実行
