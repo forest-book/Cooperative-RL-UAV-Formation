@@ -154,7 +154,6 @@ class MainController:
     def run(self):
         """メインループの実行"""
         self.initialize()
-        return
 
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
@@ -166,9 +165,9 @@ class MainController:
                     # 測定は方向性があるため、キー (i, j) は「uav_i から uav_j への測定」を表す（順序は正規化しない）
                     key = (uav_i.id, uav_j.id)
                     noisy_v, noisy_d, noisy_d_dot = self.get_noisy_measurements(
-                        uav_i, uav_j, 
-                        add_vel_noise=True, 
-                        add_dist_noise=True, 
+                        uav_i, uav_j,
+                        add_vel_noise=True,
+                        add_dist_noise=True,
                         add_dist_rate_noise=True
                     )
                     measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
@@ -197,6 +196,8 @@ class MainController:
                     # keyは157行目で生成済みなので再利用
                     uav_i.direct_estimates[key].append(next_direct.copy())
 
+            break
+            return
             # 2.融合推定の実行
             # UAV_i(i=2~6)がUAV_1への融合推定値を算出する
             target_j_id: int = self.params['TARGET_ID']
