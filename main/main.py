@@ -92,10 +92,14 @@ class MainController:
             print(uav.true_position)
             print(uav.true_velocity)
 
-        return
         # k=0での直接推定値を設定(直接推定値の初期化)
         # 隣接機に対してのみ初期化
         self.initialize_direct_estimates()
+
+        for uav in self.uavs:
+            print(f"uav_{uav.id}")
+            print(uav.direct_estimates)
+        return
 
         # k=0での融合推定値を設定(融合推定値の初期化)
         # UAV_i(i=2~6)から見たUAV1の相対位置を融合推定
