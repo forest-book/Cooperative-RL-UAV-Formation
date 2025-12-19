@@ -52,18 +52,22 @@ def plot_velocity_metrics_combined(csv_path: str):
     plt.figure(figsize=(8, 5))
     
     # 1. Noise + RL estimates (青色実線)
-    if 'velocity_consensus_rl' in data.columns:
+    if 'velocity_consensus_rl' in data.columns and 'time' in data.columns:
         plt.plot(data['time'], data['velocity_consensus_rl'], 
                  color='blue', linewidth=1.5, label='Noise+RL estimates')
-    else:
+    elif 'velocity_consensus_rl' not in data.columns:
         print("Warning: Column 'velocity_consensus_rl' not found.")
+    else:
+        print("Warning: Column 'time' not found. Cannot plot 'velocity_consensus_rl'.")
 
     # 2. Noiseless (赤色点線)
-    if 'velocity_consensus_nl' in data.columns:
+    if 'velocity_consensus_nl' in data.columns and 'time' in data.columns:
         plt.plot(data['time'], data['velocity_consensus_nl'], 
                  color='red', linewidth=1.5, linestyle='--', label='Noiseless')
-    else:
+    elif 'velocity_consensus_nl' not in data.columns:
         print("Warning: Column 'velocity_consensus_nl' not found.")
+    else:
+        print("Warning: Column 'time' not found. Cannot plot 'velocity_consensus_nl'.")
 
     # タイトル・軸ラベル (数式を含む)
     plt.title(r'Average relative velocity: $\frac{1}{N}\sum ||v^{ij}||$')
