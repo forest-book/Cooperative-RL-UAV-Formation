@@ -62,21 +62,37 @@ class MainController:
             noisy_initial_rel_pos = true_initial_rel_pos + noise
             key = self.make_fused_estimate_key(uav_i.id, target_id)
             uav_i.fused_estimates[key].append(noisy_initial_rel_pos.copy())
+    
+    def initialize_uav_setting(self):
+        # UAVインスタンス化と初期位置・隣接機の設定をまとめて行う
+        initial_positions: dict = self.params['INITIAL_POSITIONS']
+        neighbors_setting: dict = self.params['NEIGHBORS']
+
+        self.uavs.clear()  # 明示的にリセットしてから生成
+        for uav_id, position in initial_positions.items():
+            neighbors = neighbors_setting.get(uav_id, [])
+            self.uavs.append(
+                UAV(
+                    uav_id=uav_id,
+                    initial_position=position,
+                    neighbors=neighbors,
+                )
+            )
 
     def initialize(self):
         """システムの初期化"""
         print("initialize simulation settings...")
-        # UAVインスタンス化と初期位置の設定
-        initial_positions: dict = self.params['INITIAL_POSITIONS']
-        for uav_id, position in initial_positions.items():
-            self.uavs.append(UAV(uav_id=uav_id, initial_position=position))
+        # UAVインスタンス化と初期位置・隣接機の設定
+        self.initialize_uav_setting()
 
-        # 各UAV機の隣接機を設定
-        neighbors_setting = self.params['NEIGHBORS']
         for uav in self.uavs:
-            if uav.id in neighbors_setting:
-                uav.neighbors = neighbors_setting[uav.id]
+            print(f"uav_{uav.id}")
+            print(uav.id)
+            print(uav.neighbors)
+            print(uav.true_position)
+            print(uav.true_velocity)
 
+        return
         # k=0での直接推定値を設定(直接推定値の初期化)
         # 隣接機に対してのみ初期化
         self.initialize_direct_estimates()
@@ -146,6 +162,7 @@ class MainController:
     def run(self):
         """メインループの実行"""
         self.initialize()
+        return
 
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
