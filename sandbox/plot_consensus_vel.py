@@ -8,7 +8,7 @@ def set_academic_style():
     plt.rcParams['font.family'] = 'serif'
     try:
         plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
-    except:
+    except Exception:
         pass
     plt.rcParams['mathtext.fontset'] = 'stix'
     
