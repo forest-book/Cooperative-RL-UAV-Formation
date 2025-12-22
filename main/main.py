@@ -6,10 +6,11 @@ from estimator import Estimator
 from data_logger import DataLogger
 from plotter import Plotter
 from config_loader import ConfigLoader
+from interface_sensor import ISensor
 
 class MainController:
     """アプリケーション全体を管理し，メインループを実行する"""
-    def __init__(self, params: dict):
+    def __init__(self, params: dict, sensor: ISensor):
         self.params = params
         self.uavs: List[UAV] = []
         self.loop_amount: int = 0
@@ -18,6 +19,7 @@ class MainController:
 
         self.estimator = Estimator()
         self.data_logger = DataLogger()
+        self.sensor = sensor
 
     def get_uav_by_id(self, uav_id: int) -> UAV:
         """UAV IDからUAVオブジェクトを取得するヘルパーメソッド"""
@@ -154,6 +156,11 @@ class MainController:
     def run(self):
         """メインループの実行"""
         self.initialize()
+        uav_i = self.get_uav_by_id(1)
+        uav_j = self.get_uav_by_id(2)
+        var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
+        print(f"相対速度: {var}")
+        return
 
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
@@ -287,9 +294,10 @@ if __name__ == '__main__':
     # 設定ファイルから読み込む
     # JSON形式
     #simulation_params = ConfigLoader.load('../config/simulation_config.json')
-    
+    from sensor_sim_mock import MockSensor
+    from sensor_sim_coppelia import CoppeliaSensor
     # YAML形式
     simulation_params = ConfigLoader.load('../config/simulation_config.yaml')
 
-    controller = MainController(simulation_params)
+    controller = MainController(simulation_params, sensor=MockSensor())
     controller.run()
