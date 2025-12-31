@@ -64,6 +64,7 @@ class MainController:
                 noisy_initial_rel_pos = true_initial_rel_pos + noise
                 key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
                 uav_i.fused_estimates[key].append(noisy_initial_rel_pos.copy())
+            print(uav_i.fused_estimates)
     
     def initialize_uav_setting(self):
         # UAVインスタンス化と初期位置・隣接機の設定をまとめて行う
@@ -169,46 +170,46 @@ class MainController:
                     # keyは157行目で生成済みなので再利用
                     uav_i.direct_estimates[key].append(next_direct.copy())
                     print(uav_i.direct_estimates)
-            return
+            
             # 2.融合推定の実行
-            # UAV_i(i=2~6)がUAV_1への融合推定値を算出する
-            target_j_id: int = self.params['TARGET_ID']
+            # 自機以外のすべてのUAVに対する融合推定値を算出する
             for uav_i in self.uavs:
-                if uav_i.id == target_j_id:
-                    continue # UAV1 (j=1) は自身への推定を行わない
-                
-                # 重みκを計算
-                kappa_D, kappa_I = self.estimator.calc_estimation_kappa(uav_i.neighbors.copy(), target_j_id) # Listは参照渡しなのでcopyを渡す
+                for target_j_uav in self.uavs:
+                    print(f"uav_{uav_i.id}_{target_j_uav.id}")
+                    # 自機以外のすべてのUAVの内1機をtargetとして推定するのを繰り返す
+                    if target_j_uav.id == uav_i.id:
+                        continue # 自身への推定を行わない
 
-                # キャッシュからノイズ付き相対速度 v_ij を取得
-                noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_id)]
+                    # 重みκを計算
+                    kappa_D, kappa_I = self.estimator.calc_estimation_kappa(uav_i.neighbors.copy(), target_j_uav.id) # Listは参照渡しなのでcopyを渡す
 
-                # 直接推定値と融合推定値を持ってくる
-                direct_key = self.make_direct_estimate_key(uav_i.id, target_j_id)
-                fused_key = self.make_fused_estimate_key(uav_i.id, target_j_id)
-                chi_hat_ij_i_k = uav_i.direct_estimates[direct_key] # k=loopの時の直接推定値を持ってくる
-                pi_ij_i_k = uav_i.fused_estimates[fused_key]
+                    # キャッシュからノイズ付き相対速度 v_ij を取得
+                    noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)]
 
-                # 間接推定値のリストを作成
-                indirect_estimates_list: List = []
-                for r_id in uav_i.neighbors:
-                    if r_id == target_j_id: # r(間接機)はtarget(推定対象)であってはならない
-                        continue
+                    # 直接推定値と融合推定値を持ってくる
+                    direct_key = self.make_direct_estimate_key(uav_i.id, target_j_uav.id)
+                    fused_key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
+                    chi_hat_ij_i_k = uav_i.direct_estimates[direct_key] # k=loopの時の直接推定値を持ってくる
+                    pi_ij_i_k = uav_i.fused_estimates[fused_key]
 
-                    uav_r = self.get_uav_by_id(r_id) #uav_iの隣接機UAVオブジェクト
-                    
-                    # uav_i(自機)からuav_r(間接機)への直接推定値
-                    direct_key_ir = self.make_direct_estimate_key(uav_i.id, uav_r.id)
-                    chi_hat_ir_i_k = uav_i.direct_estimates[direct_key_ir]
-                    # uav_r(間接機)からtarget(推定対象)への融合推定値
-                    fused_key_rj = self.make_fused_estimate_key(uav_r.id, target_j_id)
-                    pi_rj_r_k = uav_r.fused_estimates[fused_key_rj]
-                    # uav_i(自機)からtarget(推定対象)への間接推定値
-                    chi_hat_ij_r_k: np.ndarray = chi_hat_ir_i_k[loop] + pi_rj_r_k[loop]
-                    # リストに格納
-                    indirect_estimates_list.append(chi_hat_ij_r_k.copy())
-                
-                next_fused = self.estimator.calc_fused_RL_estimate(
+                    # 間接推定値のリストを作成
+                    indirect_estimates_list: List = []
+                    for r_id in uav_i.neighbors:
+                        if r_id == target_j_uav.id: # r(間接機)はtarget(推定対象)であってはならない
+                            continue
+                        uav_r = self.get_uav_by_id(r_id) #uav_iの隣接機UAVオブジェクト
+                        # uav_i(自機)からuav_r(間接機)への直接推定値
+                        direct_key_ir = self.make_direct_estimate_key(uav_i.id, uav_r.id)
+                        chi_hat_ir_i_k = uav_i.direct_estimates[direct_key_ir]
+                        # uav_r(間接機)からtarget(推定対象)への融合推定値
+                        fused_key_rj = self.make_fused_estimate_key(uav_r.id, target_j_uav.id)
+                        pi_rj_r_k = uav_r.fused_estimates[fused_key_rj]
+                        # uav_i(自機)からtarget(推定対象)への間接推定値
+                        chi_hat_ij_r_k: np.ndarray = chi_hat_ir_i_k[loop] + pi_rj_r_k[loop]
+                        # リストに格納
+                        indirect_estimates_list.append(chi_hat_ij_r_k.copy())
+
+                    next_fused = self.estimator.calc_fused_RL_estimate(
                     pi_ij_i_k=pi_ij_i_k[loop],
                     direct_estimate_x_hat=chi_hat_ij_i_k[loop] if kappa_D!=0 else np.zeros(2),
                     indirect_estimates=indirect_estimates_list,
@@ -216,11 +217,12 @@ class MainController:
                     T=self.dt,
                     kappa_D=kappa_D,
                     kappa_I=kappa_I
-                ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
+                    ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
                 
-                # fused_keyは188行目で生成済みなので再利用
-                uav_i.fused_estimates[fused_key].append(next_fused.copy())
-
+                    # fused_keyは188行目で生成済みなので再利用
+                    uav_i.fused_estimates[fused_key].append(next_fused.copy())
+                    print(uav_i.fused_estimates)
+            return
             # 結果をlogに保存する（update_state前の位置を記録）
             self.data_logger.logging_timestamp(loop * self.dt)
 
