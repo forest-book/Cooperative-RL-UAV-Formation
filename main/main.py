@@ -150,6 +150,57 @@ class MainController:
                 # uav_iは直接推定値を持っている
                 uav_i.direct_estimates[key].append(next_direct.copy())
                 print(uav_i.direct_estimates)
+
+    def exec_fused_estimation(self, measurements_cache: dict, loop: int) -> None:
+        """融合推定の1ステップを実行する"""
+        # 自機以外のすべてのUAVに対する融合推定値を算出する
+        for uav_i in self.uavs:
+            for target_j_uav in self.uavs:
+                print(f"uav_{uav_i.id}_{target_j_uav.id}")
+                # 自機以外のすべてのUAVの内1機をtargetとして推定するのを繰り返す
+                if target_j_uav.id == uav_i.id:
+                    continue  # 自身への推定は行わない
+
+                # 重みκを計算
+                kappa_D, kappa_I = self.estimator.calc_estimation_kappa(uav_i.neighbors.copy(), target_j_uav.id) # Listは参照渡しなのでcopyを渡す
+                # キャッシュからノイズ付き相対速度 v_ij を取得
+                noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)] 
+
+                # 直接推定値と融合推定値を持ってくる
+                direct_key = self.make_direct_estimate_key(uav_i.id, target_j_uav.id)
+                fused_key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
+                chi_hat_ij_i_k = uav_i.direct_estimates[direct_key] # k=loopの時の直接推定値を持ってくる
+                pi_ij_i_k = uav_i.fused_estimates[fused_key]
+
+                # 間接推定値のリストを作成
+                indirect_estimates_list: List = []
+                for r_id in uav_i.neighbors:
+                    if r_id == target_j_uav.id: # r(間接機)はtarget(推定対象)であってはならない
+                        continue
+                    uav_r = self.get_uav_by_id(r_id) #uav_iの隣接機UAVオブジェクト
+                    # uav_i(自機)からuav_r(間接機)への直接推定値
+                    direct_key_ir = self.make_direct_estimate_key(uav_i.id, uav_r.id)
+                    chi_hat_ir_i_k = uav_i.direct_estimates[direct_key_ir]
+                    # uav_r(間接機)からtarget(推定対象)への融合推定値
+                    fused_key_rj = self.make_fused_estimate_key(uav_r.id, target_j_uav.id)
+                    pi_rj_r_k = uav_r.fused_estimates[fused_key_rj]
+                    # uav_i(自機)からtarget(推定対象)への間接推定値
+                    chi_hat_ij_r_k: np.ndarray = chi_hat_ir_i_k[loop] + pi_rj_r_k[loop]
+                    # リストに格納
+                    indirect_estimates_list.append(chi_hat_ij_r_k.copy())
+
+                next_fused = self.estimator.calc_fused_RL_estimate(
+                    pi_ij_i_k=pi_ij_i_k[loop],
+                    direct_estimate_x_hat=chi_hat_ij_i_k[loop] if kappa_D != 0 else np.zeros(2),
+                    indirect_estimates=indirect_estimates_list,
+                    noisy_v=noisy_v_ij,
+                    T=self.dt,
+                    kappa_D=kappa_D,
+                    kappa_I=kappa_I,
+                ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
+
+                uav_i.fused_estimates[fused_key].append(next_fused.copy())
+                print(uav_i.fused_estimates)
     
     def show_simulation_progress(self, loop):
         if(loop * 100 // self.loop_amount) > ((loop - 1) *100 // self.loop_amount):
@@ -176,56 +227,7 @@ class MainController:
             self.exec_direct_estimation(measurements_cache, loop)
             
             # 2.融合推定の実行
-            # 自機以外のすべてのUAVに対する融合推定値を算出する
-            for uav_i in self.uavs:
-                for target_j_uav in self.uavs:
-                    print(f"uav_{uav_i.id}_{target_j_uav.id}")
-                    # 自機以外のすべてのUAVの内1機をtargetとして推定するのを繰り返す
-                    if target_j_uav.id == uav_i.id:
-                        continue # 自身への推定を行わない
-
-                    # 重みκを計算
-                    kappa_D, kappa_I = self.estimator.calc_estimation_kappa(uav_i.neighbors.copy(), target_j_uav.id) # Listは参照渡しなのでcopyを渡す
-
-                    # キャッシュからノイズ付き相対速度 v_ij を取得
-                    noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)]
-
-                    # 直接推定値と融合推定値を持ってくる
-                    direct_key = self.make_direct_estimate_key(uav_i.id, target_j_uav.id)
-                    fused_key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
-                    chi_hat_ij_i_k = uav_i.direct_estimates[direct_key] # k=loopの時の直接推定値を持ってくる
-                    pi_ij_i_k = uav_i.fused_estimates[fused_key]
-
-                    # 間接推定値のリストを作成
-                    indirect_estimates_list: List = []
-                    for r_id in uav_i.neighbors:
-                        if r_id == target_j_uav.id: # r(間接機)はtarget(推定対象)であってはならない
-                            continue
-                        uav_r = self.get_uav_by_id(r_id) #uav_iの隣接機UAVオブジェクト
-                        # uav_i(自機)からuav_r(間接機)への直接推定値
-                        direct_key_ir = self.make_direct_estimate_key(uav_i.id, uav_r.id)
-                        chi_hat_ir_i_k = uav_i.direct_estimates[direct_key_ir]
-                        # uav_r(間接機)からtarget(推定対象)への融合推定値
-                        fused_key_rj = self.make_fused_estimate_key(uav_r.id, target_j_uav.id)
-                        pi_rj_r_k = uav_r.fused_estimates[fused_key_rj]
-                        # uav_i(自機)からtarget(推定対象)への間接推定値
-                        chi_hat_ij_r_k: np.ndarray = chi_hat_ir_i_k[loop] + pi_rj_r_k[loop]
-                        # リストに格納
-                        indirect_estimates_list.append(chi_hat_ij_r_k.copy())
-
-                    next_fused = self.estimator.calc_fused_RL_estimate(
-                        pi_ij_i_k=pi_ij_i_k[loop],
-                        direct_estimate_x_hat=chi_hat_ij_i_k[loop] if kappa_D!=0 else np.zeros(2),
-                        indirect_estimates=indirect_estimates_list,
-                        noisy_v=noisy_v_ij,
-                        T=self.dt,
-                        kappa_D=kappa_D,
-                        kappa_I=kappa_I
-                    ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
-                
-                    # fused_keyは191行目で生成済みなので再利用
-                    uav_i.fused_estimates[fused_key].append(next_fused.copy())
-                    print(uav_i.fused_estimates)
+            self.exec_fused_estimation(measurements_cache, loop)
             return
             # 結果をlogに保存する（update_state前の位置を記録）
             self.data_logger.logging_timestamp(loop * self.dt)
