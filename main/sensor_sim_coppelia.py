@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from interface_sensor import ISensor
 import numpy as np
 from quadcopter import UAV
