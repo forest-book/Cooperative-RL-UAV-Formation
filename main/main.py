@@ -98,43 +98,6 @@ class MainController:
         # 推定式はステップk(自然数)毎に状態を更新するため
         self.loop_amount = int(self.params['DURATION'] / self.params['T'])
 
-    def get_noisy_measurements(self, uav_i: UAV, uav_j: UAV, *, add_vel_noise=True, add_dist_noise=True, add_dist_rate_noise=True) -> Tuple[np.ndarray, float, float]:
-        """
-        2UAV間の真の状態に基づき、ノイズが付加された測定値を生成する
-        シミュレータ上に測距モジュールがあるなら不要となる関数
-        
-        ノイズモデル:
-        - ガウス分布（正規分布）に基づくノイズを使用
-        - 一様分布の±bound/2の範囲を、ガウス分布の3σに相当すると解釈
-        - 99.7%の値が±3σ以内に収まり、時折真値に近い測定も得られる
-        """
-        # 真の相対値
-        true_x_ij = uav_j.true_position - uav_i.true_position
-        true_v_ij = uav_j.true_velocity - uav_i.true_velocity # 自機の速度情報はUWB RCM通信で送られてくる
-        true_d_ij = np.linalg.norm(true_x_ij) # UWBモジュールでの測距を模している
-        # 論文式(1)の上あたりの方程式から算出される
-        true_d_dot_ij = (true_x_ij @ true_v_ij) / (true_d_ij + 1e-9) # ゼロ除算防止
-
-        # ノイズモデル (4.1節)
-        delta_bar = self.params['NOISE']['delta_bar']
-        dist_bound = self.params['NOISE']['dist_bound']
-
-        # 速度ノイズ: ガウス分布 N(0, σ²)
-        # 元の一様分布の全幅δ̄を±3σ（6σ）に対応させる → σ = δ̄/6
-        sigma_v = delta_bar / 6.0
-        vel_noise = np.random.normal(0, sigma_v, size=2) if add_vel_noise else np.zeros(2)
-        
-        # 距離ノイズ: ガウス分布 N(0, σ²)
-        # 元の一様分布の全幅boundを±3σ（6σ）に対応させる → σ = bound/6
-        sigma_d = dist_bound / 6.0
-        dist_noise = np.random.normal(0, sigma_d) if add_dist_noise else 0.0
-        
-        # 距離変化率ノイズ: ガウス分布 N(0, σ²)
-        # 距離ノイズと同じ標準偏差σ_dを使用
-        dist_rate_noise = np.random.normal(0, sigma_d) if add_dist_rate_noise else 0.0
-
-        return true_v_ij + vel_noise, true_d_ij + dist_noise, true_d_dot_ij + dist_rate_noise
-
     def calc_RL_estimation_error(self, uav_i_id: int, target_j_id: int, loop_num: int) -> float:
         # 真の相対位置
         target_uav = self.get_uav_by_id(target_j_id)
