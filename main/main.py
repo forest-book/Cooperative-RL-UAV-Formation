@@ -144,12 +144,11 @@ class MainController:
                     noisy_d = self.sensor.get_distance_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_noise=False)
                     noisy_d_dot = self.sensor.get_distance_rate_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_rate_noise=False)
                     measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
-            print(measurements_cache)
-            return
+            
             # 1.直接推定の実行
             for uav_i in self.uavs:
                 for neighbor_id in uav_i.neighbors:
-                    
+                    print(f"uav_{uav_i.id}_{neighbor_id}")
                     # キャッシュからノイズ付き観測値を取得
                     noisy_v, noisy_d, noisy_d_dot = measurements_cache[(uav_i.id, neighbor_id)]
                     
@@ -169,8 +168,7 @@ class MainController:
                     # uav_iは直接推定値を持っている
                     # keyは157行目で生成済みなので再利用
                     uav_i.direct_estimates[key].append(next_direct.copy())
-
-            break
+                    print(uav_i.direct_estimates)
             return
             # 2.融合推定の実行
             # UAV_i(i=2~6)がUAV_1への融合推定値を算出する
