@@ -29,7 +29,7 @@ def calc_RL_based_control_input(
     num_neighbors = len(rel_v_ij_i_k)
     if not (len(rel_distances) == num_neighbors and len(pi_ij_i_k) == num_neighbors):
         raise ValueError("Input lists (velocities, distances, estimates) must have the same length.")
-    
+
     # 目標距離がスカラ(float)で与えられた場合、リストに変換して扱う
     if isinstance(desired_distances, (float, int)):
         desired_dists_list = [float(desired_distances)] * num_neighbors
@@ -37,8 +37,8 @@ def calc_RL_based_control_input(
         desired_dists_list = desired_distances
         if len(desired_dists_list) != num_neighbors:
             raise ValueError("desired distance list must match the number of neighbors.")
-        
-    
+
+
     # 第2項: 相対速度合意項
     # gamma_1 * T * Σ v_{i,k}^{ij} （隣接機jに対する相対速度v_{ij}の合計）
     rel_velocity_sum = np.zeros_like(vel_i_k, dtype=float)
@@ -63,7 +63,7 @@ def calc_RL_based_control_input(
     print(f"フォーメーション制御項: {formation_control_term}")
     vel_i_k_plus_1 = vel_i_k + velocity_consensus_term + formation_control_term
     print(f"次ステップの制御入力(速度): {vel_i_k_plus_1}")
-    return vel_i_k_plus_1 
+    return vel_i_k_plus_1
 
 # テストデータ
 v_curr = np.array([815.325, 770.875])  # 自機の現在の速度

@@ -11,18 +11,18 @@ def set_academic_style():
     except Exception:
         pass
     plt.rcParams['mathtext.fontset'] = 'stix'
-    
+
     # フォントサイズ
     plt.rcParams['font.size'] = 12
     plt.rcParams['axes.labelsize'] = 14
     plt.rcParams['legend.fontsize'] = 12
-    
+
     # 目盛り設定 (内向き)
     plt.rcParams['xtick.direction'] = 'in'
     plt.rcParams['ytick.direction'] = 'in'
     plt.rcParams['xtick.major.size'] = 5
     plt.rcParams['ytick.major.size'] = 5
-    
+
     # 線の太さなど
     plt.rcParams['lines.linewidth'] = 1.5
     plt.rcParams['axes.grid'] = True
@@ -33,7 +33,7 @@ def set_academic_style():
 def plot_velocity_metrics_combined(csv_path: str):
     """
     論文 Fig. 7(d) の速度合意グラフを描画 (統合CSV対応版)
-    
+
     Args:
         csv_path (str): 'velocity_consensus_rl' と 'velocity_consensus_nl' カラムを含むCSVパス
     """
@@ -50,10 +50,10 @@ def plot_velocity_metrics_combined(csv_path: str):
     set_academic_style()
 
     plt.figure(figsize=(8, 5))
-    
+
     # 1. Noise + RL estimates (青色実線)
     if 'velocity_consensus_rl' in data.columns and 'time' in data.columns:
-        plt.plot(data['time'], data['velocity_consensus_rl'], 
+        plt.plot(data['time'], data['velocity_consensus_rl'],
                  color='blue', linewidth=1.5, label='Noise+RL estimates')
     elif 'velocity_consensus_rl' not in data.columns:
         print("Warning: Column 'velocity_consensus_rl' not found.")
@@ -62,7 +62,7 @@ def plot_velocity_metrics_combined(csv_path: str):
 
     # 2. Noiseless (赤色点線)
     if 'velocity_consensus_nl' in data.columns and 'time' in data.columns:
-        plt.plot(data['time'], data['velocity_consensus_nl'], 
+        plt.plot(data['time'], data['velocity_consensus_nl'],
                  color='red', linewidth=1.5, linestyle='--', label='Noiseless')
     elif 'velocity_consensus_nl' not in data.columns:
         print("Warning: Column 'velocity_consensus_nl' not found.")
@@ -73,18 +73,18 @@ def plot_velocity_metrics_combined(csv_path: str):
     plt.title(r'Average relative velocity: $\frac{1}{N}\sum ||v^{ij}||$')
     plt.xlabel('Time (s)')
     plt.ylabel('Relative velocity (m/s)')
-    
+
     # 軸範囲 (論文に合わせて調整)
     plt.ylim(0, 9)
     if 'time' in data.columns:
         max_time = data['time'].max()
         plt.xlim(0, max_time)
-    
+
     # 凡例
     plt.legend(loc='upper right')
-    
+
     plt.tight_layout()
-    
+
     # 保存
     output_filename = "fig7d_combined.png"
     plt.savefig(output_filename)
@@ -94,5 +94,5 @@ def plot_velocity_metrics_combined(csv_path: str):
 if __name__ == "__main__":
     # 統合されたCSVファイルを指定
     target_csv = "sample_metrics_velocity_combined.csv"
-    
+
     plot_velocity_metrics_combined(target_csv)
