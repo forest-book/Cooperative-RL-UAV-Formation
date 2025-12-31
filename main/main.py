@@ -162,7 +162,9 @@ class MainController:
         var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
         print(f"相対速度: {var}")
         var = self.sensor.get_distance_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_noise=False)
-        print(f"相対距離{var}")
+        print(f"相対距離: {var}")
+        var = self.sensor.get_distance_rate_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_rate_noise=False)
+        print(f"距離変化率: {var}")
         return
     
 

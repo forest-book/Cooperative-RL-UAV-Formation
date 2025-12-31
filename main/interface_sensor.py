@@ -9,3 +9,7 @@ class ISensor(ABC):
     @abstractmethod
     def get_distance_info(self, uav_i, uav_j, dist_bound, *, add_dist_noise=False) -> float:
         pass
+
+    @abstractmethod
+    def get_distance_rate_info(self, uav_i, uav_j, dist_bound, *, add_dist_rate_noise=False) -> float:
+        pass
