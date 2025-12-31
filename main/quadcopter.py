@@ -26,7 +26,7 @@ class UAV:
     def update_state(self, t: int, dt: float, event: Scenario = Scenario.CONTINUOUS):
         """UAVの真の位置と速度を更新する"""
         k = t * dt  # 速度式内部のkなので実時間に変換
-        
+
         # 論文記載の速度式
         # 注: 添え字のkは離散時間ステップだが，速度式内部のkは実時間であるみたい
         # 速度は [m/s] 単位として解釈し、dt を掛けて位置を更新

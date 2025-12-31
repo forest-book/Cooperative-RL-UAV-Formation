@@ -43,7 +43,7 @@ class Estimator:
         chi_hat_ij_i_k_plus_1 = current_RL_term + predicton_term + correction_term
         #print(f"次の直接推定値{chi_hat_ij_i_k_plus_1}")
         return chi_hat_ij_i_k_plus_1
-    
+
     def calc_fused_RL_estimate(self,
                                pi_ij_i_k: np.ndarray,
                                direct_estimate_x_hat: np.ndarray,
@@ -89,7 +89,7 @@ class Estimator:
         pi_ij_i_k_plus_1 = current_fused_RL_term + prediction_term + direct_correction_term + indirect_correction_sum_term
         #print(f"次の融合推定値: {pi_ij_i_k_plus_1}")
         return pi_ij_i_k_plus_1
-    
+
     def calc_estimation_kappa(self, uav_neigbors: List[int], target_uav_id: int) -> Tuple[float, float]:
         """
         論文記載の式に基づき重みkappaを計算

@@ -64,7 +64,7 @@ class MainController:
                 noisy_initial_rel_pos = true_initial_rel_pos + noise
                 key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
                 uav_i.fused_estimates[key].append(noisy_initial_rel_pos.copy())
-    
+
     def initialize_uav_setting(self):
         # UAVインスタンス化と初期位置・隣接機の設定をまとめて行う
         initial_positions: dict = self.params['INITIAL_POSITIONS']
@@ -184,7 +184,7 @@ class MainController:
                 # 重みκを計算
                 kappa_D, kappa_I = self.estimator.calc_estimation_kappa(uav_i.neighbors.copy(), target_j_uav.id) # Listは参照渡しなのでcopyを渡す
                 # キャッシュからノイズ付き相対速度 v_ij を取得
-                noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)] 
+                noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)]
 
                 # 直接推定値と融合推定値を持ってくる
                 direct_key = self.make_direct_estimate_key(uav_i.id, target_j_uav.id)
@@ -207,7 +207,7 @@ class MainController:
 
                 uav_i.fused_estimates[fused_key].append(next_fused.copy())
                 print(uav_i.fused_estimates)
-    
+
     def show_simulation_progress(self, loop):
         if(loop * 100 // self.loop_amount) > ((loop - 1) *100 // self.loop_amount):
             print(f"simulation progress: {loop *100 // self.loop_amount}%")
@@ -228,10 +228,10 @@ class MainController:
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
-            
+
             # 1.直接推定の実行
             self.exec_direct_estimation(measurements_cache, loop)
-            
+
             # 2.融合推定の実行
             self.exec_fused_estimation(measurements_cache, loop)
             return
@@ -259,11 +259,11 @@ class MainController:
         # ロギングした推定誤差をcsv出力
         trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
         error_filename = self.data_logger.save_fused_RL_errors_to_csv()
-        
+
         # グラフ生成
         Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
-        
+
         # 統計情報の表示と保存
         self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
         self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
