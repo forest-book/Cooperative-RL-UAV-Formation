@@ -64,7 +64,6 @@ class MainController:
                 noisy_initial_rel_pos = true_initial_rel_pos + noise
                 key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
                 uav_i.fused_estimates[key].append(noisy_initial_rel_pos.copy())
-            print(uav_i.fused_estimates)
     
     def initialize_uav_setting(self):
         # UAVインスタンス化と初期位置・隣接機の設定をまとめて行う
