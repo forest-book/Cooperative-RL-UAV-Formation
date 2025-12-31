@@ -210,13 +210,13 @@ class MainController:
                         indirect_estimates_list.append(chi_hat_ij_r_k.copy())
 
                     next_fused = self.estimator.calc_fused_RL_estimate(
-                    pi_ij_i_k=pi_ij_i_k[loop],
-                    direct_estimate_x_hat=chi_hat_ij_i_k[loop] if kappa_D!=0 else np.zeros(2),
-                    indirect_estimates=indirect_estimates_list,
-                    noisy_v=noisy_v_ij,
-                    T=self.dt,
-                    kappa_D=kappa_D,
-                    kappa_I=kappa_I
+                        pi_ij_i_k=pi_ij_i_k[loop],
+                        direct_estimate_x_hat=chi_hat_ij_i_k[loop] if kappa_D!=0 else np.zeros(2),
+                        indirect_estimates=indirect_estimates_list,
+                        noisy_v=noisy_v_ij,
+                        T=self.dt,
+                        kappa_D=kappa_D,
+                        kappa_I=kappa_I
                     ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
                 
                     # fused_keyは188行目で生成済みなので再利用
