@@ -158,9 +158,13 @@ class MainController:
         self.initialize()
         uav_i = self.get_uav_by_id(1)
         uav_j = self.get_uav_by_id(2)
+        uav_i.true_velocity = np.array([2,2])
         var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
         print(f"相対速度: {var}")
+        var = self.sensor.get_distance_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_noise=False)
+        print(f"相対距離{var}")
         return
+    
 
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
