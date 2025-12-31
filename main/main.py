@@ -151,6 +151,26 @@ class MainController:
                 uav_i.direct_estimates[key].append(next_direct.copy())
                 print(uav_i.direct_estimates)
 
+    def exec_indirect_estimation(self, uav_i: UAV, target_j_uav: UAV, loop: int) -> List[np.ndarray]:
+        """事実上の間接推定の1ステップを実行する"""
+        # 間接推定値のリストを作成
+        indirect_estimates_list: List[np.ndarray] = []
+        for r_id in uav_i.neighbors:
+            if r_id == target_j_uav.id: # r(間接機)はtarget(推定対象)であってはならない
+                continue
+            uav_r = self.get_uav_by_id(r_id) #uav_iの隣接機UAVオブジェクト
+            # uav_i(自機)からuav_r(間接機)への直接推定値
+            direct_key_ir = self.make_direct_estimate_key(uav_i.id, uav_r.id)
+            chi_hat_ir_i_k = uav_i.direct_estimates[direct_key_ir]
+            # uav_r(間接機)からtarget(推定対象)への融合推定値
+            fused_key_rj = self.make_fused_estimate_key(uav_r.id, target_j_uav.id)
+            pi_rj_r_k = uav_r.fused_estimates[fused_key_rj]
+            # uav_i(自機)からtarget(推定対象)への間接推定値
+            chi_hat_ij_r_k: np.ndarray = chi_hat_ir_i_k[loop] + pi_rj_r_k[loop]
+            # リストに格納
+            indirect_estimates_list.append(chi_hat_ij_r_k.copy())
+        return indirect_estimates_list
+
     def exec_fused_estimation(self, measurements_cache: dict, loop: int) -> None:
         """融合推定の1ステップを実行する"""
         # 自機以外のすべてのUAVに対する融合推定値を算出する
@@ -173,21 +193,7 @@ class MainController:
                 pi_ij_i_k = uav_i.fused_estimates[fused_key]
 
                 # 間接推定値のリストを作成
-                indirect_estimates_list: List = []
-                for r_id in uav_i.neighbors:
-                    if r_id == target_j_uav.id: # r(間接機)はtarget(推定対象)であってはならない
-                        continue
-                    uav_r = self.get_uav_by_id(r_id) #uav_iの隣接機UAVオブジェクト
-                    # uav_i(自機)からuav_r(間接機)への直接推定値
-                    direct_key_ir = self.make_direct_estimate_key(uav_i.id, uav_r.id)
-                    chi_hat_ir_i_k = uav_i.direct_estimates[direct_key_ir]
-                    # uav_r(間接機)からtarget(推定対象)への融合推定値
-                    fused_key_rj = self.make_fused_estimate_key(uav_r.id, target_j_uav.id)
-                    pi_rj_r_k = uav_r.fused_estimates[fused_key_rj]
-                    # uav_i(自機)からtarget(推定対象)への間接推定値
-                    chi_hat_ij_r_k: np.ndarray = chi_hat_ir_i_k[loop] + pi_rj_r_k[loop]
-                    # リストに格納
-                    indirect_estimates_list.append(chi_hat_ij_r_k.copy())
+                indirect_estimates_list = self.exec_indirect_estimation(uav_i, target_j_uav, loop)
 
                 next_fused = self.estimator.calc_fused_RL_estimate(
                     pi_ij_i_k=pi_ij_i_k[loop],
