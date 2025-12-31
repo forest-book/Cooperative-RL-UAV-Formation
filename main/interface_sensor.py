@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 class ISensor(ABC):
-    
+    """センサ情報取得メソッドのインタフェース"""
     @abstractmethod
     def get_velocity_info(self, uav_i, uav_j, delta_bar, *, add_vel_noise=False):
         pass

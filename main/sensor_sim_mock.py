@@ -4,7 +4,7 @@ import numpy as np
 from quadcopter import UAV
 
 class MockSensor(ISensor):
-
+    """pythonのみでのフォーメーション制御検証用センサクラス"""
     def get_velocity_info(self, uav_i: UAV, uav_j: UAV, delta_bar, *, add_vel_noise=False) -> np.ndarray:
         true_v_ij = uav_j.true_velocity - uav_i.true_velocity
         # 速度ノイズ: ガウス分布 N(0, σ²)
