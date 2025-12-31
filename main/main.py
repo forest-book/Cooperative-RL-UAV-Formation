@@ -6,10 +6,11 @@ from estimator import Estimator
 from data_logger import DataLogger
 from plotter import Plotter
 from config_loader import ConfigLoader
+from interface_sensor import ISensor
 
 class MainController:
     """アプリケーション全体を管理し，メインループを実行する"""
-    def __init__(self, params: dict):
+    def __init__(self, params: dict, sensor: ISensor):
         self.params = params
         self.uavs: List[UAV] = []
         self.loop_amount: int = 0
@@ -18,6 +19,7 @@ class MainController:
 
         self.estimator = Estimator()
         self.data_logger = DataLogger()
+        self.sensor = sensor
 
     def get_uav_by_id(self, uav_id: int) -> UAV:
         """UAV IDからUAVオブジェクトを取得するヘルパーメソッド"""
@@ -96,43 +98,6 @@ class MainController:
         # 推定式はステップk(自然数)毎に状態を更新するため
         self.loop_amount = int(self.params['DURATION'] / self.params['T'])
 
-    def get_noisy_measurements(self, uav_i: UAV, uav_j: UAV, *, add_vel_noise=True, add_dist_noise=True, add_dist_rate_noise=True) -> Tuple[np.ndarray, float, float]:
-        """
-        2UAV間の真の状態に基づき、ノイズが付加された測定値を生成する
-        シミュレータ上に測距モジュールがあるなら不要となる関数
-        
-        ノイズモデル:
-        - ガウス分布（正規分布）に基づくノイズを使用
-        - 一様分布の±bound/2の範囲を、ガウス分布の3σに相当すると解釈
-        - 99.7%の値が±3σ以内に収まり、時折真値に近い測定も得られる
-        """
-        # 真の相対値
-        true_x_ij = uav_j.true_position - uav_i.true_position
-        true_v_ij = uav_j.true_velocity - uav_i.true_velocity # 自機の速度情報はUWB RCM通信で送られてくる
-        true_d_ij = np.linalg.norm(true_x_ij) # UWBモジュールでの測距を模している
-        # 論文式(1)の上あたりの方程式から算出される
-        true_d_dot_ij = (true_x_ij @ true_v_ij) / (true_d_ij + 1e-9) # ゼロ除算防止
-
-        # ノイズモデル (4.1節)
-        delta_bar = self.params['NOISE']['delta_bar']
-        dist_bound = self.params['NOISE']['dist_bound']
-
-        # 速度ノイズ: ガウス分布 N(0, σ²)
-        # 元の一様分布の全幅δ̄を±3σ（6σ）に対応させる → σ = δ̄/6
-        sigma_v = delta_bar / 6.0
-        vel_noise = np.random.normal(0, sigma_v, size=2) if add_vel_noise else np.zeros(2)
-        
-        # 距離ノイズ: ガウス分布 N(0, σ²)
-        # 元の一様分布の全幅boundを±3σ（6σ）に対応させる → σ = bound/6
-        sigma_d = dist_bound / 6.0
-        dist_noise = np.random.normal(0, sigma_d) if add_dist_noise else 0.0
-        
-        # 距離変化率ノイズ: ガウス分布 N(0, σ²)
-        # 距離ノイズと同じ標準偏差σ_dを使用
-        dist_rate_noise = np.random.normal(0, sigma_d) if add_dist_rate_noise else 0.0
-
-        return true_v_ij + vel_noise, true_d_ij + dist_noise, true_d_dot_ij + dist_rate_noise
-
     def calc_RL_estimation_error(self, uav_i_id: int, target_j_id: int, loop_num: int) -> float:
         # 真の相対位置
         target_uav = self.get_uav_by_id(target_j_id)
@@ -154,7 +119,17 @@ class MainController:
     def run(self):
         """メインループの実行"""
         self.initialize()
+        uav_i = self.get_uav_by_id(1)
+        uav_j = self.get_uav_by_id(2)
+        uav_i.true_velocity = np.array([2,2])
+        var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
+        print(f"相対速度: {var}")
+        var = self.sensor.get_distance_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_noise=False)
+        print(f"相対距離: {var}")
+        var = self.sensor.get_distance_rate_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_rate_noise=False)
+        print(f"距離変化率: {var}")
         return
+    
 
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
@@ -166,9 +141,9 @@ class MainController:
                     # 測定は方向性があるため、キー (i, j) は「uav_i から uav_j への測定」を表す（順序は正規化しない）
                     key = (uav_i.id, uav_j.id)
                     noisy_v, noisy_d, noisy_d_dot = self.get_noisy_measurements(
-                        uav_i, uav_j, 
-                        add_vel_noise=True, 
-                        add_dist_noise=True, 
+                        uav_i, uav_j,
+                        add_vel_noise=True,
+                        add_dist_noise=True,
                         add_dist_rate_noise=True
                     )
                     measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
@@ -197,6 +172,8 @@ class MainController:
                     # keyは157行目で生成済みなので再利用
                     uav_i.direct_estimates[key].append(next_direct.copy())
 
+            break
+            return
             # 2.融合推定の実行
             # UAV_i(i=2~6)がUAV_1への融合推定値を算出する
             target_j_id: int = self.params['TARGET_ID']
@@ -286,9 +263,10 @@ if __name__ == '__main__':
     # 設定ファイルから読み込む
     # JSON形式
     #simulation_params = ConfigLoader.load('../config/simulation_config.json')
-    
+    from sensor_sim_mock import MockSensor
+    from sensor_sim_coppelia import CoppeliaSensor
     # YAML形式
     simulation_params = ConfigLoader.load('../config/simulation_config.yaml')
 
-    controller = MainController(simulation_params)
+    controller = MainController(simulation_params, sensor=MockSensor())
     controller.run()
