@@ -128,26 +128,24 @@ class MainController:
         print(f"相対距離: {var}")
         var = self.sensor.get_distance_rate_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_rate_noise=False)
         print(f"距離変化率: {var}")
-        return
-    
 
         for loop in range(self.loop_amount):
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = {}
+            delta_bar = self.params['NOISE']['delta_bar']
+            dist_bound = self.params['NOISE']['dist_bound']
             for uav_i in self.uavs:
                 for uav_j in self.uavs:
                     if uav_i.id == uav_j.id:
                         continue
                     # 測定は方向性があるため、キー (i, j) は「uav_i から uav_j への測定」を表す（順序は正規化しない）
                     key = (uav_i.id, uav_j.id)
-                    noisy_v, noisy_d, noisy_d_dot = self.get_noisy_measurements(
-                        uav_i, uav_j,
-                        add_vel_noise=True,
-                        add_dist_noise=True,
-                        add_dist_rate_noise=True
-                    )
+                    noisy_v = self.sensor.get_velocity_info(uav_i=uav_i, uav_j=uav_j, delta_bar=delta_bar, add_vel_noise=False)
+                    noisy_d = self.sensor.get_distance_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_noise=False)
+                    noisy_d_dot = self.sensor.get_distance_rate_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_rate_noise=False)
                     measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
-
+            print(measurements_cache)
+            return
             # 1.直接推定の実行
             for uav_i in self.uavs:
                 for neighbor_id in uav_i.neighbors:
