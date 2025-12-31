@@ -127,6 +127,29 @@ class MainController:
                 noisy_d_dot = self.sensor.get_distance_rate_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_rate_noise=False)
                 measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
         return measurements_cache
+
+    def exec_direct_estimation(self, measurements_cache: dict, loop: int) -> None:
+        """直接推定の1ステップを実行する"""
+        for uav_i in self.uavs:
+            for neighbor_id in uav_i.neighbors:
+                print(f"uav_{uav_i.id}_{neighbor_id}")
+                # キャッシュからノイズ付き観測値を取得
+                noisy_v, noisy_d, noisy_d_dot = measurements_cache[(uav_i.id, neighbor_id)]
+                # 式(1)の計算
+                key = self.make_direct_estimate_key(uav_i.id, neighbor_id)
+                chi_hat_ij_i_k = uav_i.direct_estimates[key] # k=loopの時の直接推定値を持ってくる
+
+                next_direct = self.estimator.calc_direct_RL_estimate(
+                    chi_hat_ij_i_k=chi_hat_ij_i_k[loop],
+                    noisy_v=noisy_v,
+                    noisy_d=noisy_d,
+                    noisy_d_dot=noisy_d_dot,
+                    T=self.dt,
+                    gamma=self.params['GAMMA']
+                ) # 次のステップ(k=loop + 1)の時の相対位置を直接推定
+                # uav_iは直接推定値を持っている
+                uav_i.direct_estimates[key].append(next_direct.copy())
+                print(uav_i.direct_estimates)
     
     def show_simulation_progress(self, loop):
         if(loop * 100 // self.loop_amount) > ((loop - 1) *100 // self.loop_amount):
@@ -150,29 +173,7 @@ class MainController:
             measurements_cache = self.build_measurements_cache()
             
             # 1.直接推定の実行
-            for uav_i in self.uavs:
-                for neighbor_id in uav_i.neighbors:
-                    print(f"uav_{uav_i.id}_{neighbor_id}")
-                    # キャッシュからノイズ付き観測値を取得
-                    noisy_v, noisy_d, noisy_d_dot = measurements_cache[(uav_i.id, neighbor_id)]
-                    
-                    # 式(1)の計算
-                    key = self.make_direct_estimate_key(uav_i.id, neighbor_id)
-                    chi_hat_ij_i_k = uav_i.direct_estimates[key] # k=loopの時の直接推定値を持ってくる
-                    
-                    next_direct = self.estimator.calc_direct_RL_estimate(
-                        chi_hat_ij_i_k=chi_hat_ij_i_k[loop],
-                        noisy_v=noisy_v,
-                        noisy_d=noisy_d,
-                        noisy_d_dot=noisy_d_dot,
-                        T=self.dt,
-                        gamma=self.params['GAMMA']
-                    ) # 次のステップ(k=loop + 1)の時の相対位置を直接推定
-                    
-                    # uav_iは直接推定値を持っている
-                    # keyは157行目で生成済みなので再利用
-                    uav_i.direct_estimates[key].append(next_direct.copy())
-                    print(uav_i.direct_estimates)
+            self.exec_direct_estimation(measurements_cache, loop)
             
             # 2.融合推定の実行
             # 自機以外のすべてのUAVに対する融合推定値を算出する
