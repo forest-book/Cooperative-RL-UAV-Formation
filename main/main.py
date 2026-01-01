@@ -140,18 +140,18 @@ class MainController:
             relative_velocities.append(noisy_v.copy())
         return relative_velocities
 
-    def get_neighbor_relative_distances(self, uav: UAV, measurements_cache: dict) -> List[np.ndarray]:
+    def get_neighbor_relative_distances(self, uav: UAV, measurements_cache: dict) -> List[float]:
         """隣接機との現在の相対距離のリストを取得する"""
-        relative_distances: List[np.ndarray] = []
+        relative_distances: List[float] = []
         for neighbor_id in uav.neighbors:
             key = (uav.id, neighbor_id)
             if key not in measurements_cache:
                 raise KeyError(f"No cached measurement for UAV pair {key}")
             _, noisy_d, _ = measurements_cache[key]
-            relative_distances.append(noisy_d.copy())
+            relative_distances.append(noisy_d)
         return relative_distances
 
-    def get_neighbor_fused_RLs(self, uav: UAV, loop: int):
+    def get_neighbor_fused_RLs(self, uav: UAV, loop: int) -> List[np.ndarray]:
         """隣接機への融合RL推定位置ベクトルのリストを取得する"""
         fused_RLs: List[np.ndarray] = []
         for neighbor_id in uav.neighbors:
@@ -269,7 +269,7 @@ class MainController:
         self.initialize()
 
         #for loop in range(self.loop_amount):
-        for loop in range(50):
+        for loop in range(5):
             print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
