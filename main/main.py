@@ -246,8 +246,6 @@ class MainController:
             rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
             desired_distance = self.params['DIST']
             fused_RLs: List[np.ndarray] = self.get_neighbor_fused_RLs(uav_i, loop)
-            print("apply control input RL")
-            print(fused_RLs)
             next_velocity = self.controller.calc_RL_based_control_input(
                 vel_i_k=uav_i.true_velocity,
                 rel_v_ij_i_k=rel_velocities,
@@ -269,17 +267,10 @@ class MainController:
     def run(self):
         """メインループの実行"""
         self.initialize()
-        uav_i = self.get_uav_by_id(1)
-        uav_j = self.get_uav_by_id(2)
-        #uav_i.true_velocity = np.array([2,2])
-        var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
-        print(f"相対速度: {var}")
-        var = self.sensor.get_distance_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_noise=False)
-        print(f"相対距離: {var}")
-        var = self.sensor.get_distance_rate_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_rate_noise=False)
-        print(f"距離変化率: {var}")
 
-        for loop in range(self.loop_amount):
+        #for loop in range(self.loop_amount):
+        for loop in range(14):
+            print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
 
@@ -302,29 +293,29 @@ class MainController:
             # 全UAVの真の状態を k+1 に更新
             for uav in self.uavs:
                 uav.update_state(dt=self.dt)
-            return
-            for uav in self.uavs:
-                if uav.id == self.params['TARGET_ID']:
-                    continue
-                # k+1時点での推定誤差を計算
-                error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
-                # 推定誤差をロギング
-                self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
+            #return
+        #     for uav in self.uavs:
+        #         if uav.id == self.params['TARGET_ID']:
+        #             continue
+        #         # k+1時点での推定誤差を計算
+        #         error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
+        #         # 推定誤差をロギング
+        #         self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
 
-            self.show_simulation_progress(loop=loop)
+        #     self.show_simulation_progress(loop=loop)
 
-        # ロギングした推定誤差をcsv出力
-        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
-        error_filename = self.data_logger.save_fused_RL_errors_to_csv()
+        # # ロギングした推定誤差をcsv出力
+        # trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
+        # error_filename = self.data_logger.save_fused_RL_errors_to_csv()
 
-        # グラフ生成
-        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
-        Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        # # グラフ生成
+        # Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
+        # Plotter.plot_fused_RL_errors_from_csv(error_filename)
 
-        # 統計情報の表示と保存
-        self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
-        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
-        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
+        # # 統計情報の表示と保存
+        # self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
+        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
+        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
