@@ -5,7 +5,6 @@ JSON形式またはYAML形式の設定ファイルを読み込む
 import json
 import os
 from typing import Dict, Any
-from quadcopter import Scenario
 
 
 class ConfigLoader:
@@ -36,9 +35,6 @@ class ConfigLoader:
             int(key): value for key, value in config['NEIGHBORS'].items()
         }
 
-        # EVENTを文字列からScenarioオブジェクトに変換
-        config['EVENT'] = ConfigLoader._parse_scenario(config['EVENT'])
-
         return config
 
     @staticmethod
@@ -66,35 +62,7 @@ class ConfigLoader:
         with open(filepath, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
-        # EVENTを文字列からScenarioオブジェクトに変換
-        config['EVENT'] = ConfigLoader._parse_scenario(config['EVENT'])
-
         return config
-
-    @staticmethod
-    def _parse_scenario(scenario_str: str) -> Scenario:
-        """
-        シナリオ名文字列をScenarioオブジェクトに変換
-
-        Args:
-            scenario_str (str): シナリオ名 ('CONTINUOUS', 'SUDDEN_TURN')
-
-        Returns:
-            Scenario: Scenarioオブジェクト
-        """
-        scenario_map = {
-            'CONTINUOUS': Scenario.CONTINUOUS,
-            'SUDDEN_TURN': Scenario.SUDDEN_TURN,
-        }
-
-        scenario_str_upper = scenario_str.upper()
-        if scenario_str_upper not in scenario_map:
-            raise ValueError(
-                f"不明なシナリオ: {scenario_str}\n"
-                f"利用可能なシナリオ: {list(scenario_map.keys())}"
-            )
-
-        return scenario_map[scenario_str_upper]
 
     @staticmethod
     def load(filepath: str) -> Dict[str, Any]:
