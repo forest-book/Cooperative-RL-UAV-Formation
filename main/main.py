@@ -293,29 +293,29 @@ class MainController:
             # 全UAVの真の状態を k+1 に更新
             for uav in self.uavs:
                 uav.update_state(dt=self.dt)
-            #return
-        #     for uav in self.uavs:
-        #         if uav.id == self.params['TARGET_ID']:
-        #             continue
-        #         # k+1時点での推定誤差を計算
-        #         error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
-        #         # 推定誤差をロギング
-        #         self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
 
-        #     self.show_simulation_progress(loop=loop)
+            for uav in self.uavs:
+                if uav.id == self.params['TARGET_ID']:
+                    continue
+                # k+1時点での推定誤差を計算
+                error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
+                # 推定誤差をロギング
+                self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
 
-        # # ロギングした推定誤差をcsv出力
-        # trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
-        # error_filename = self.data_logger.save_fused_RL_errors_to_csv()
+            self.show_simulation_progress(loop=loop)
 
-        # # グラフ生成
-        # Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
-        # Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        # ロギングした推定誤差をcsv出力
+        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
+        error_filename = self.data_logger.save_fused_RL_errors_to_csv()
 
-        # # 統計情報の表示と保存
-        # self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
-        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
-        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
+        # グラフ生成
+        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
+        Plotter.plot_fused_RL_errors_from_csv(error_filename)
+
+        # 統計情報の表示と保存
+        self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
+        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
+        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
