@@ -207,7 +207,7 @@ class MainController:
         # 自機以外のすべてのUAVに対する融合推定値を算出する
         for uav_i in self.uavs:
             for target_j_uav in self.uavs:
-                print(f"uav_{uav_i.id}_{target_j_uav.id}")
+                #print(f"uav_{uav_i.id}_{target_j_uav.id}")
                 # 自機以外のすべてのUAVの内1機をtargetとして推定するのを繰り返す
                 if target_j_uav.id == uav_i.id:
                     continue  # 自身への推定は行わない
@@ -237,7 +237,7 @@ class MainController:
                 ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
 
                 uav_i.fused_estimates[fused_key].append(next_fused.copy())
-                print(uav_i.fused_estimates)
+                #print(uav_i.fused_estimates)
 
     def apply_control_input(self, measurements_cache, loop):
         """次のステップの制御入力（速度）を算出し適用する"""
@@ -269,7 +269,7 @@ class MainController:
         self.initialize()
 
         #for loop in range(self.loop_amount):
-        for loop in range(14):
+        for loop in range(50):
             print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
