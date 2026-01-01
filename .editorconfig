@@ -1,0 +1,18 @@
+# 最上位のEditorConfigファイル
+root = true
+# 全般的な設定
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+# Pythonファイル専用の設定
+[*.py]
+max_line_length = 88
+# Makefile専用の設定
+[Makefile]
+indent_style = tab
+[*.yaml]
+indent_size = 2

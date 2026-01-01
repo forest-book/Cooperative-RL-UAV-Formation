@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Tuple
+from typing import List
 
 from quadcopter import UAV
 from estimator import Estimator
@@ -7,6 +7,7 @@ from data_logger import DataLogger
 from plotter import Plotter
 from config_loader import ConfigLoader
 from interface_sensor import ISensor
+from control_input import ControlInput
 
 class MainController:
     """アプリケーション全体を管理し，メインループを実行する"""
@@ -15,10 +16,10 @@ class MainController:
         self.uavs: List[UAV] = []
         self.loop_amount: int = 0
         self.dt = params['T']   # サンプリング周期
-        self.event = params['EVENT']    # t=100sで外乱を加えるか否か
 
         self.estimator = Estimator()
         self.data_logger = DataLogger()
+        self.controller = ControlInput()
         self.sensor = sensor
 
     def get_uav_by_id(self, uav_id: int) -> UAV:
@@ -64,7 +65,7 @@ class MainController:
                 noisy_initial_rel_pos = true_initial_rel_pos + noise
                 key = self.make_fused_estimate_key(uav_i.id, target_j_uav.id)
                 uav_i.fused_estimates[key].append(noisy_initial_rel_pos.copy())
-    
+
     def initialize_uav_setting(self):
         # UAVインスタンス化と初期位置・隣接機の設定をまとめて行う
         initial_positions: dict = self.params['INITIAL_POSITIONS']
@@ -128,11 +129,41 @@ class MainController:
                 measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
         return measurements_cache
 
+    def get_neighbor_relative_velocities(self, uav: UAV, measurements_cache: dict) -> List[np.ndarray]:
+        """隣接機との現在の相対速度ベクトルのリストを取得する"""
+        relative_velocities: List[np.ndarray] = []
+        for neighbor_id in uav.neighbors:
+            key = (uav.id, neighbor_id)
+            if key not in measurements_cache:
+                raise KeyError(f"No cached measurement for UAV pair {key}")
+            noisy_v, _, _ = measurements_cache[key]
+            relative_velocities.append(noisy_v.copy())
+        return relative_velocities
+
+    def get_neighbor_relative_distances(self, uav: UAV, measurements_cache: dict) -> List[float]:
+        """隣接機との現在の相対距離のリストを取得する"""
+        relative_distances: List[float] = []
+        for neighbor_id in uav.neighbors:
+            key = (uav.id, neighbor_id)
+            if key not in measurements_cache:
+                raise KeyError(f"No cached measurement for UAV pair {key}")
+            _, noisy_d, _ = measurements_cache[key]
+            relative_distances.append(noisy_d)
+        return relative_distances
+
+    def get_neighbor_fused_RLs(self, uav: UAV, loop: int) -> List[np.ndarray]:
+        """隣接機への融合RL推定位置ベクトルのリストを取得する"""
+        fused_RLs: List[np.ndarray] = []
+        for neighbor_id in uav.neighbors:
+            key = self.make_fused_estimate_key(uav.id, neighbor_id)
+            fused_RLs.append(uav.fused_estimates[key][loop].copy())
+        return fused_RLs
+
     def exec_direct_estimation(self, measurements_cache: dict, loop: int) -> None:
         """直接推定の1ステップを実行する"""
         for uav_i in self.uavs:
             for neighbor_id in uav_i.neighbors:
-                print(f"uav_{uav_i.id}_{neighbor_id}")
+                #print(f"uav_{uav_i.id}_{neighbor_id}")
                 # キャッシュからノイズ付き観測値を取得
                 noisy_v, noisy_d, noisy_d_dot = measurements_cache[(uav_i.id, neighbor_id)]
                 # 式(1)の計算
@@ -149,7 +180,7 @@ class MainController:
                 ) # 次のステップ(k=loop + 1)の時の相対位置を直接推定
                 # uav_iは直接推定値を持っている
                 uav_i.direct_estimates[key].append(next_direct.copy())
-                print(uav_i.direct_estimates)
+                #print(uav_i.direct_estimates)
 
     def exec_indirect_estimation(self, uav_i: UAV, target_j_uav: UAV, loop: int) -> List[np.ndarray]:
         """事実上の間接推定の1ステップを実行する"""
@@ -176,7 +207,7 @@ class MainController:
         # 自機以外のすべてのUAVに対する融合推定値を算出する
         for uav_i in self.uavs:
             for target_j_uav in self.uavs:
-                print(f"uav_{uav_i.id}_{target_j_uav.id}")
+                #print(f"uav_{uav_i.id}_{target_j_uav.id}")
                 # 自機以外のすべてのUAVの内1機をtargetとして推定するのを繰り返す
                 if target_j_uav.id == uav_i.id:
                     continue  # 自身への推定は行わない
@@ -184,7 +215,7 @@ class MainController:
                 # 重みκを計算
                 kappa_D, kappa_I = self.estimator.calc_estimation_kappa(uav_i.neighbors.copy(), target_j_uav.id) # Listは参照渡しなのでcopyを渡す
                 # キャッシュからノイズ付き相対速度 v_ij を取得
-                noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)] 
+                noisy_v_ij, _, _ = measurements_cache[(uav_i.id, target_j_uav.id)]
 
                 # 直接推定値と融合推定値を持ってくる
                 direct_key = self.make_direct_estimate_key(uav_i.id, target_j_uav.id)
@@ -206,8 +237,29 @@ class MainController:
                 ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
 
                 uav_i.fused_estimates[fused_key].append(next_fused.copy())
-                print(uav_i.fused_estimates)
-    
+                #print(uav_i.fused_estimates)
+
+    def apply_control_input(self, measurements_cache, loop):
+        """次のステップの制御入力（速度）を算出し適用する"""
+        for uav_i in self.uavs:
+            rel_velocities: List[np.ndarray] = self.get_neighbor_relative_velocities(uav_i, measurements_cache)
+            rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
+            desired_distance = self.params['DIST']
+            fused_RLs: List[np.ndarray] = self.get_neighbor_fused_RLs(uav_i, loop)
+            next_velocity = self.controller.calc_RL_based_control_input(
+                vel_i_k=uav_i.true_velocity,
+                rel_v_ij_i_k=rel_velocities,
+                rel_distances=rel_distances,
+                desired_distances=desired_distance,
+                pi_ij_i_k=fused_RLs,
+                T=self.dt,
+                gamma1=self.params['GAMMA1'],
+                gamma2=self.params['GAMMA2']
+            )
+            print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
+            uav_i.control_input = next_velocity
+        return
+
     def show_simulation_progress(self, loop):
         if(loop * 100 // self.loop_amount) > ((loop - 1) *100 // self.loop_amount):
             print(f"simulation progress: {loop *100 // self.loop_amount}%")
@@ -215,26 +267,22 @@ class MainController:
     def run(self):
         """メインループの実行"""
         self.initialize()
-        uav_i = self.get_uav_by_id(1)
-        uav_j = self.get_uav_by_id(2)
-        uav_i.true_velocity = np.array([2,2])
-        var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
-        print(f"相対速度: {var}")
-        var = self.sensor.get_distance_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_noise=False)
-        print(f"相対距離: {var}")
-        var = self.sensor.get_distance_rate_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_rate_noise=False)
-        print(f"距離変化率: {var}")
 
-        for loop in range(self.loop_amount):
+        #for loop in range(self.loop_amount):
+        for loop in range(5):
+            print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
-            
+
             # 1.直接推定の実行
             self.exec_direct_estimation(measurements_cache, loop)
-            
+
             # 2.融合推定の実行
             self.exec_fused_estimation(measurements_cache, loop)
-            return
+
+            # 3.制御入力の算出と適用
+            self.apply_control_input(measurements_cache, loop)
+
             # 結果をlogに保存する（update_state前の位置を記録）
             self.data_logger.logging_timestamp(loop * self.dt)
 
@@ -244,30 +292,30 @@ class MainController:
 
             # 全UAVの真の状態を k+1 に更新
             for uav in self.uavs:
-                uav.update_state(t=loop+1, dt=self.dt, event=self.params['EVENT'])
+                uav.update_state(dt=self.dt)
+            #return
+        #     for uav in self.uavs:
+        #         if uav.id == self.params['TARGET_ID']:
+        #             continue
+        #         # k+1時点での推定誤差を計算
+        #         error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
+        #         # 推定誤差をロギング
+        #         self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
 
-            for uav in self.uavs:
-                if uav.id == self.params['TARGET_ID']:
-                    continue
-                # k+1時点での推定誤差を計算
-                error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
-                # 推定誤差をロギング
-                self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
+        #     self.show_simulation_progress(loop=loop)
 
-            self.show_simulation_progress(loop=loop)
+        # # ロギングした推定誤差をcsv出力
+        # trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
+        # error_filename = self.data_logger.save_fused_RL_errors_to_csv()
 
-        # ロギングした推定誤差をcsv出力
-        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
-        error_filename = self.data_logger.save_fused_RL_errors_to_csv()
-        
-        # グラフ生成
-        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
-        Plotter.plot_fused_RL_errors_from_csv(error_filename)
-        
-        # 統計情報の表示と保存
-        self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
-        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
-        self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
+        # # グラフ生成
+        # Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
+        # Plotter.plot_fused_RL_errors_from_csv(error_filename)
+
+        # # 統計情報の表示と保存
+        # self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
+        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
+        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む

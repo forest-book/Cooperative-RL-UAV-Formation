@@ -6,11 +6,11 @@ T: 0.02        # サンプリング周期 [秒]
 
 # 推定アルゴリズム設定
 GAMMA: 0.06    # ゲイン γ
-TARGET_ID: 1   # 推定目標UAV ID
 
-# シナリオ設定
-# 選択肢: CONTINUOUS, SUDDEN_TURN
-EVENT: CONTINUOUS
+# 制御入力設定
+GAMMA1: 1.0    # ゲイン γ1
+GAMMA2: 0.00014  # ゲイン γ2
+DIST: 15       # UAV間距離[m]
 
 # UAV初期位置 [x, y] (m)
 INITIAL_POSITIONS:

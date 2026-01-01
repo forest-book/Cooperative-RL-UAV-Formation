@@ -11,7 +11,7 @@ class MockSensor(ISensor):
         sigma_v = delta_bar / 6.0
         vel_noise = np.random.normal(0, sigma_v, size=2) if add_vel_noise else np.zeros(2)
         return true_v_ij + vel_noise
-    
+
     def get_distance_info(self, uav_i: UAV, uav_j: UAV, dist_bound, *, add_dist_noise=False) -> float:
         # 真の相対位置
         true_x_ij = uav_j.true_position - uav_i.true_position
@@ -21,7 +21,7 @@ class MockSensor(ISensor):
         sigma_d = dist_bound / 6.0
         dist_noise = np.random.normal(0, sigma_d) if add_dist_noise else 0.0
         return true_d_ij + dist_noise
-    
+
     def get_distance_rate_info(self, uav_i: UAV, uav_j: UAV, dist_bound, *, add_dist_rate_noise=False) -> float:
         true_x_ij = uav_j.true_position - uav_i.true_position
         true_v_ij = uav_j.true_velocity - uav_i.true_velocity
