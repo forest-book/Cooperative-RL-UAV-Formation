@@ -5,6 +5,7 @@ class ControlInput:
     """
     UAVへの制御入力を担うクラス
     """
+    @staticmethod
     def calc_RL_based_control_input(
             vel_i_k: np.ndarray,
             rel_v_ij_i_k: List[np.ndarray],

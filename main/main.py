@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Tuple
+from typing import List
 
 from quadcopter import UAV
 from estimator import Estimator
@@ -7,6 +7,7 @@ from data_logger import DataLogger
 from plotter import Plotter
 from config_loader import ConfigLoader
 from interface_sensor import ISensor
+from control_input import ControlInput
 
 class MainController:
     """アプリケーション全体を管理し，メインループを実行する"""
@@ -15,10 +16,10 @@ class MainController:
         self.uavs: List[UAV] = []
         self.loop_amount: int = 0
         self.dt = params['T']   # サンプリング周期
-        self.event = params['EVENT']    # t=100sで外乱を加えるか否か
 
         self.estimator = Estimator()
         self.data_logger = DataLogger()
+        self.controller = ControlInput()
         self.sensor = sensor
 
     def get_uav_by_id(self, uav_id: int) -> UAV:
@@ -128,6 +129,36 @@ class MainController:
                 measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
         return measurements_cache
 
+    def get_neighbor_relative_velocities(self, uav: UAV, measurements_cache: dict) -> List[np.ndarray]:
+        """隣接機との現在の相対速度ベクトルのリストを取得する"""
+        relative_velocities: List[np.ndarray] = []
+        for neighbor_id in uav.neighbors:
+            key = (uav.id, neighbor_id)
+            if key not in measurements_cache:
+                raise KeyError(f"No cached measurement for UAV pair {key}")
+            noisy_v, _, _ = measurements_cache[key]
+            relative_velocities.append(noisy_v.copy())
+        return relative_velocities
+
+    def get_neighbor_relative_distances(self, uav: UAV, measurements_cache: dict) -> List[np.ndarray]:
+        """隣接機との現在の相対距離のリストを取得する"""
+        relative_distances: List[np.ndarray] = []
+        for neighbor_id in uav.neighbors:
+            key = (uav.id, neighbor_id)
+            if key not in measurements_cache:
+                raise KeyError(f"No cached measurement for UAV pair {key}")
+            _, noisy_d, _ = measurements_cache[key]
+            relative_distances.append(noisy_d.copy())
+        return relative_distances
+
+    def get_neighbor_fused_RLs(self, uav: UAV, loop: int):
+        """隣接貴への融合RL推定位置ベクトルのリストを取得する"""
+        fused_RLs: List[np.ndarray] = []
+        for neighbor_id in uav.neighbors:
+            key = self.make_fused_estimate_key(uav.id, neighbor_id)
+            fused_RLs.append(uav.fused_estimates[key][loop].copy())
+        return fused_RLs
+
     def exec_direct_estimation(self, measurements_cache: dict, loop: int) -> None:
         """直接推定の1ステップを実行する"""
         for uav_i in self.uavs:
@@ -208,6 +239,29 @@ class MainController:
                 uav_i.fused_estimates[fused_key].append(next_fused.copy())
                 print(uav_i.fused_estimates)
 
+    def apply_control_input(self, measurements_cache, loop):
+        """次のステップの制御入力（速度）を算出し適用する"""
+        for uav_i in self.uavs:
+            rel_velocities: List[np.ndarray] = self.get_neighbor_relative_velocities(uav_i, measurements_cache)
+            rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
+            desired_distance = self.params['DIST']
+            fused_RLs: List[np.ndarray] = self.get_neighbor_fused_RLs(uav_i, loop)
+            print("apply control input RL")
+            print(fused_RLs)
+            next_velocity = self.controller.calc_RL_based_control_input(
+                vel_i_k=uav_i.true_velocity,
+                rel_v_ij_i_k=rel_velocities,
+                rel_distances=rel_distances,
+                desired_distances=desired_distance,
+                pi_ij_i_k=fused_RLs,
+                T=self.dt,
+                gamma1=self.params['GAMMA1'],
+                gamma2=self.params['GAMMA2']
+            )
+            print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
+            uav_i.control_input = next_velocity
+        return
+
     def show_simulation_progress(self, loop):
         if(loop * 100 // self.loop_amount) > ((loop - 1) *100 // self.loop_amount):
             print(f"simulation progress: {loop *100 // self.loop_amount}%")
@@ -217,7 +271,7 @@ class MainController:
         self.initialize()
         uav_i = self.get_uav_by_id(1)
         uav_j = self.get_uav_by_id(2)
-        uav_i.true_velocity = np.array([2,2])
+        #uav_i.true_velocity = np.array([2,2])
         var = self.sensor.get_velocity_info(uav_i, uav_j, self.params['NOISE']['delta_bar'], add_vel_noise=False)
         print(f"相対速度: {var}")
         var = self.sensor.get_distance_info(uav_i, uav_j, self.params['NOISE']['dist_bound'], add_dist_noise=False)
@@ -234,7 +288,10 @@ class MainController:
 
             # 2.融合推定の実行
             self.exec_fused_estimation(measurements_cache, loop)
-            return
+
+            # 3.制御入力の算出と適用
+            self.apply_control_input(measurements_cache, loop)
+
             # 結果をlogに保存する（update_state前の位置を記録）
             self.data_logger.logging_timestamp(loop * self.dt)
 
@@ -244,8 +301,8 @@ class MainController:
 
             # 全UAVの真の状態を k+1 に更新
             for uav in self.uavs:
-                uav.update_state(t=loop+1, dt=self.dt, event=self.params['EVENT'])
-
+                uav.update_state(dt=self.dt)
+            return
             for uav in self.uavs:
                 if uav.id == self.params['TARGET_ID']:
                     continue
