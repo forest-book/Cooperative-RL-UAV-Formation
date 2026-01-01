@@ -163,7 +163,7 @@ class MainController:
         """直接推定の1ステップを実行する"""
         for uav_i in self.uavs:
             for neighbor_id in uav_i.neighbors:
-                print(f"uav_{uav_i.id}_{neighbor_id}")
+                #print(f"uav_{uav_i.id}_{neighbor_id}")
                 # キャッシュからノイズ付き観測値を取得
                 noisy_v, noisy_d, noisy_d_dot = measurements_cache[(uav_i.id, neighbor_id)]
                 # 式(1)の計算
@@ -180,7 +180,7 @@ class MainController:
                 ) # 次のステップ(k=loop + 1)の時の相対位置を直接推定
                 # uav_iは直接推定値を持っている
                 uav_i.direct_estimates[key].append(next_direct.copy())
-                print(uav_i.direct_estimates)
+                #print(uav_i.direct_estimates)
 
     def exec_indirect_estimation(self, uav_i: UAV, target_j_uav: UAV, loop: int) -> List[np.ndarray]:
         """事実上の間接推定の1ステップを実行する"""
