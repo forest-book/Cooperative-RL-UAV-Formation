@@ -159,6 +159,15 @@ class MainController:
             fused_RLs.append(uav.fused_estimates[key][loop].copy())
         return fused_RLs
 
+    def iter_unique_uav_pairs(self) -> List[tuple[int, int]]:
+        """(i, j) 形式で i<j の重複しないUAVペア一覧を返す"""
+        ids = sorted([uav.id for uav in self.uavs])
+        pairs: List[tuple[int, int]] = []
+        for idx, uav_id in enumerate(ids):
+            for other_id in ids[idx + 1:]:
+                pairs.append((uav_id, other_id))
+        return pairs
+
     def exec_direct_estimation(self, measurements_cache: dict, loop: int) -> None:
         """直接推定の1ステップを実行する"""
         for uav_i in self.uavs:
@@ -294,20 +303,17 @@ class MainController:
             for uav in self.uavs:
                 uav.update_state(dt=self.dt)
 
-            for uav in self.uavs:
-                if uav.id == self.params['TARGET_ID']:
-                    continue
-                # k+1時点での推定誤差を計算
-                error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
-                # 推定誤差をロギング
-                self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
+            # 重複のないペアだけ推定誤差をロギング
+            for uav_i_id, uav_j_id in self.iter_unique_uav_pairs():
+                error_distance = self.calc_RL_estimation_error(uav_i_id, uav_j_id, loop+1)
+                self.data_logger.logging_fused_RL_error_pair((uav_i_id, uav_j_id), error_distance)
 
             self.show_simulation_progress(loop=loop)
 
         # ロギングした推定誤差をcsv出力
         trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
         error_filename = self.data_logger.save_fused_RL_errors_to_csv()
-
+        return
         # グラフ生成
         Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
