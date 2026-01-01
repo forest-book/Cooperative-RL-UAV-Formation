@@ -152,7 +152,7 @@ class MainController:
         return relative_distances
 
     def get_neighbor_fused_RLs(self, uav: UAV, loop: int):
-        """隣接貴への融合RL推定位置ベクトルのリストを取得する"""
+        """隣接機への融合RL推定位置ベクトルのリストを取得する"""
         fused_RLs: List[np.ndarray] = []
         for neighbor_id in uav.neighbors:
             key = self.make_fused_estimate_key(uav.id, neighbor_id)
