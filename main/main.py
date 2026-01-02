@@ -265,7 +265,7 @@ class MainController:
                 gamma1=self.params['GAMMA1'],
                 gamma2=self.params['GAMMA2']
             )
-            print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
+            #print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
             uav_i.control_input = next_velocity
         return
 
