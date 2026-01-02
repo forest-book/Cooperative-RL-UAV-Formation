@@ -282,6 +282,38 @@ class MainController:
         if(loop * 100 // self.loop_amount) > ((loop - 1) *100 // self.loop_amount):
             print(f"simulation progress: {loop *100 // self.loop_amount}%")
 
+    def get_target_distances_dict(self) -> dict:
+        """
+        設定ファイルから目標距離の辞書を生成する
+        
+        Returns:
+            dict: UAVペアごとの目標距離の辞書 {(i, j): distance}
+                  設定ファイルにTARGET_DISTANCESがあればそれを使用、
+                  なければDISTパラメータを全ペアに適用
+        """
+        target_distances = {}
+        
+        # TARGET_DISTANCESが設定されている場合（ペアごとの目標距離）
+        if 'TARGET_DISTANCES' in self.params:
+            for pair_key, distance in self.params['TARGET_DISTANCES'].items():
+                # キーが文字列 "1-2" 形式の場合
+                if isinstance(pair_key, str) and '-' in pair_key:
+                    i, j = map(int, pair_key.split('-'))
+                    target_distances[(i, j)] = float(distance)
+                # キーがタプル (1, 2) 形式の場合
+                elif isinstance(pair_key, tuple):
+                    target_distances[pair_key] = float(distance)
+        # DISTパラメータがある場合（全ペアに同じ目標距離）
+        elif 'DIST' in self.params:
+            default_dist = self.params['DIST']
+            # 全UAVペアに対して目標距離を設定
+            for uav_i in self.uavs:
+                for neighbor_id in uav_i.neighbors:
+                    if uav_i.id < neighbor_id:  # 重複を避けるため小さいIDを先に
+                        target_distances[(uav_i.id, neighbor_id)] = float(default_dist)
+        
+        return target_distances
+
     def run(self):
         """メインループの実行"""
         self.initialize()
@@ -328,9 +360,10 @@ class MainController:
         inter_dist_filename = self.data_logger.save_inter_uav_distance_to_csv()
 
         # グラフ生成
+        target_distances = self.get_target_distances_dict()
         Plotter.plot_UAV_trajectories_from_csv(trajectory_filename, total_uav_num)
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
-        Plotter.plot_inter_uav_distance_from_csv(inter_dist_filename)
+        Plotter.plot_inter_uav_distance_from_csv(inter_dist_filename, target_distances=target_distances)
         return
         # 統計情報の表示と保存
         #self.data_logger.print_fused_RL_error_statistics(total_uav_num=len(self.uavs))
