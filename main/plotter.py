@@ -139,7 +139,7 @@ class Plotter:
             if time_col not in data.columns:
                 raise KeyError("`time` column is missing in the inter-uav  distance CSV")
 
-            pair_pattern = re.compile(r"dist_(\d+)_([\d]+)")
+            pair_pattern = re.compile(r"dist_(\d+)_(\d+)")
             pair_cols = [col for col in data.columns if pair_pattern.fullmatch(col)]
 
             # UAV間距離保存の形式が正規表現に合わなければ例外を発生
