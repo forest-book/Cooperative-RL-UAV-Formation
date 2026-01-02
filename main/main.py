@@ -290,26 +290,38 @@ class MainController:
             dict: UAVペアごとの目標距離の辞書 {(i, j): distance}
                   設定ファイルにTARGET_DISTANCESがあればそれを使用、
                   なければDISTパラメータを全ペアに適用
+        
+        Raises:
+            ValueError: TARGET_DISTANCESの形式が不正な場合
         """
         target_distances = {}
         
         # TARGET_DISTANCESが設定されている場合（ペアごとの目標距離）
         if 'TARGET_DISTANCES' in self.params:
             for pair_key, distance in self.params['TARGET_DISTANCES'].items():
-                # キーが文字列 "1-2" 形式の場合
-                if isinstance(pair_key, str) and '-' in pair_key:
-                    i, j = map(int, pair_key.split('-'))
-                    target_distances[(i, j)] = float(distance)
-                # キーがタプル (1, 2) 形式の場合
-                elif isinstance(pair_key, tuple):
-                    target_distances[pair_key] = float(distance)
+                try:
+                    # キーが文字列 "1-2" 形式の場合
+                    if isinstance(pair_key, str) and '-' in pair_key:
+                        parts = pair_key.split('-')
+                        if len(parts) != 2:
+                            raise ValueError(f"Invalid pair format: '{pair_key}'. Expected 'ID1-ID2'")
+                        i, j = map(int, parts)
+                        target_distances[(i, j)] = float(distance)
+                    # キーがタプル (1, 2) 形式の場合
+                    elif isinstance(pair_key, tuple):
+                        target_distances[pair_key] = float(distance)
+                    else:
+                        raise ValueError(f"Invalid pair key type: {type(pair_key)}. Expected string or tuple")
+                except (ValueError, TypeError) as e:
+                    raise ValueError(f"Failed to parse TARGET_DISTANCES entry '{pair_key}': {distance}. {str(e)}")
         # DISTパラメータがある場合（全ペアに同じ目標距離）
         elif 'DIST' in self.params:
             default_dist = self.params['DIST']
             # 全UAVペアに対して目標距離を設定
+            # 隣接関係に基づいて全ペアを収集（重複を避けるため小さいIDを先に）
             for uav_i in self.uavs:
                 for neighbor_id in uav_i.neighbors:
-                    if uav_i.id < neighbor_id:  # 重複を避けるため小さいIDを先に
+                    if uav_i.id < neighbor_id:
                         target_distances[(uav_i.id, neighbor_id)] = float(default_dist)
         
         return target_distances

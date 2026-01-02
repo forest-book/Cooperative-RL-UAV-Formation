@@ -177,6 +177,11 @@ class Plotter:
                 for (i, j), target_dist in target_distances.items():
                     unique_targets.add(target_dist)
                 
+                # X軸の範囲を取得してテキスト位置を動的に計算
+                times_all = data[time_col]
+                x_min, x_max = times_all.min(), times_all.max()
+                text_x = x_min + (x_max - x_min) * 0.02  # X軸の2%の位置
+                
                 # 各一意な目標距離に対してガイドラインを描画
                 for target_dist in sorted(unique_targets):
                     # この目標距離に対応するUAVペアを収集
@@ -184,8 +189,10 @@ class Plotter:
                     pairs_str = ", ".join(pairs_for_this_target)
                     
                     plt.axhline(y=target_dist, color='gray', linestyle=':', linewidth=1.5, alpha=0.8)
-                    plt.text(0.5, target_dist + 0.5, f'Target: {target_dist}m {pairs_str}', 
-                            fontsize=10, color='gray')
+                    # Y軸の位置をデータレンジに基づいて調整
+                    text_y_offset = (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.01  # Y軸範囲の1%
+                    plt.text(text_x, target_dist + text_y_offset, f'Target: {target_dist}m {pairs_str}', 
+                            fontsize=10, color='gray', verticalalignment='bottom')
 
             ax.set_title('Inter-UAV Distance: $d^{ij}$', fontsize=16, fontweight='bold')
             ax.set_xlabel('Time (sec)', fontsize=14)
