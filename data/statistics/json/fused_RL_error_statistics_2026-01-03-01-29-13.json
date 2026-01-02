@@ -1,0 +1,24 @@
+{
+    "transient_time": 10.0,
+    "timestamp": "2026-01-03 01:29:13",
+    "statistics": {
+        "UAV_1_2": {
+            "mean": null,
+            "variance": null,
+            "std": null,
+            "num_samples": 0
+        },
+        "UAV_1_3": {
+            "mean": null,
+            "variance": null,
+            "std": null,
+            "num_samples": 0
+        },
+        "UAV_2_3": {
+            "mean": null,
+            "variance": null,
+            "std": null,
+            "num_samples": 0
+        }
+    }
+}
