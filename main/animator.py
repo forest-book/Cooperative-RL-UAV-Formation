@@ -184,8 +184,18 @@ class FormationAnimator:
             try:
                 print(f"Saving animation to {output_path} using {writer_name}...")
                 progress_bar.set_description("Saving video")
-                progress_bar.reset()
-                anim.save(output_path, writer=writer, dpi=dpi, progress_callback=lambda i, n: progress_bar.update(1) if i == 0 or progress_bar.n < n else None)
+                # reset counter for save step
+                progress_bar.n = 0
+
+                def _save_progress(i, n):
+                    # Ensure total matches the number of frames the writer reports
+                    if progress_bar.total != n:
+                        progress_bar.total = n
+                    # Set absolute progress to current frame index + 1
+                    progress_bar.n = i + 1
+                    progress_bar.refresh()
+
+                anim.save(output_path, writer=writer, dpi=dpi, progress_callback=_save_progress)
                 progress_bar.close()
                 print(f"Animation saved to {output_path}")
             except Exception as exc:
