@@ -355,7 +355,7 @@ class MainController:
             tail_length=0,      # optional: trail length in frames; None/0 for full path
             interval_ms=50,      # frame interval (ms)
         )
-        anim.animate(save=True, show=True, frame_step=5, speed_multiplier=8.0)
+        anim.animate(save=True, show=True, frame_step=30, speed_multiplier=16.0)
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
