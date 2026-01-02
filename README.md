@@ -50,8 +50,8 @@ Cooperative-RL-UAV-Formation/
 ### インストール手順
 
 ```bash
-# リポジトリのクローン
-git clone https://github.com/yourusername/Cooperative-RL-UAV-Formation.git
+# リポジトリのクローン（<GITHUB_USER_OR_ORG> を実際のユーザー名または組織名に置き換えてください）
+git clone https://github.com/<GITHUB_USER_OR_ORG>/Cooperative-RL-UAV-Formation.git
 cd Cooperative-RL-UAV-Formation
 
 # 仮想環境の作成（推奨）
