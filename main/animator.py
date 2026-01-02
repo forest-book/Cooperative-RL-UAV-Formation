@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 class FormationAnimator:
@@ -126,9 +127,17 @@ class FormationAnimator:
         if frame_indices[-1] != total_frames - 1:
             frame_indices.append(total_frames - 1)
 
+        # 進捗バーを作成
+        progress_bar = tqdm(total=len(frame_indices), desc="Generating frames", unit="frame", leave=False)
+
+        def update_with_progress(frame):
+            result = self._update(frame)
+            progress_bar.update(1)
+            return result
+
         anim = animation.FuncAnimation(
             self.fig,
-            self._update,
+            update_with_progress,
             frames=frame_indices,
             interval=self.interval_ms,
             blit=True,
@@ -160,7 +169,10 @@ class FormationAnimator:
             if writer_name == "pillow":
                 writer = animation.PillowWriter(fps=fps, metadata={"software": "matplotlib"})
             elif writer_name == "ffmpeg":
-                writer = animation.FFMpegWriter(fps=fps, metadata={"software": "matplotlib"})
+                writer = animation.FFMpegWriter(
+                    fps=fps,
+                    metadata={"software": "matplotlib"}
+                )
             elif writer_name == "imagemagick":
                 writer = animation.ImageMagickWriter(fps=fps, metadata={"software": "matplotlib"})
             else:
@@ -170,10 +182,17 @@ class FormationAnimator:
 
             try:
                 print(f"Saving animation to {output_path} using {writer_name}...")
-                anim.save(output_path, writer=writer, dpi=dpi)
+                progress_bar.set_description("Saving video")
+                progress_bar.reset()
+                anim.save(output_path, writer=writer, dpi=dpi, progress_callback=lambda i, n: progress_bar.update(1) if i == 0 or progress_bar.n < n else None)
+                progress_bar.close()
                 print(f"Animation saved to {output_path}")
             except Exception as exc:
+                progress_bar.close()
                 print(f"アニメーションの保存に失敗しました ({writer_name} 使用): {exc}")
+        else:
+            # show のみの場合はプログレスバーを閉じる
+            progress_bar.close()
 
         if show:
             plt.show()
