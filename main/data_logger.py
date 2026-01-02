@@ -31,7 +31,7 @@ class DataLogger:
     def logging_inter_uav_distance_pair(self, pair: Tuple[int, int], distance: float):
         """重複のないUAVペア (i<j) の機体間距離をロギング"""
         i, j = sorted(pair)
-        self.inter_uav_distance_pair[f"d_{i}_{j}"].append(distance)
+        self.inter_uav_distance_pair[f"dist_{i}_{j}"].append(distance)
 
     def calc_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0) -> Dict[int, Dict[str, float]]:
         """

@@ -121,3 +121,77 @@ class Plotter:
             print(f"Error: The file {filename} was not found.")
         except Exception as e:
             print(f"An error occurred while plotting: {e}")
+
+    @staticmethod
+    def plot_inter_uav_distance_from_csv(filename: str, save_filename: Optional[str] = None):
+        """
+        UAV機体間距離をCSVファイルから読み込んでプロットする関数
+
+        Args:
+            filename (str): 読み込むCSVファイル名
+            save_filename (Optional[str]): 保存するグラフファイル名（Noneの場合は自動生成）
+        """
+        try:
+            file_path = f"../data/csv/inter_uav_dist/{filename}"
+            data = pd.read_csv(file_path)
+
+            time_col = 'time'
+            if time_col not in data.columns:
+                raise KeyError("`time` column is missing in the error CSV")
+
+            pair_pattern = re.compile(r"dist_(\d+)_([\d]+)")
+            pair_cols = [col for col in data.columns if pair_pattern.fullmatch(col)]
+
+            # RL保存の形式が正規表現に合わなければ例外を発生
+            target_cols = pair_cols if pair_cols else None
+            if not target_cols:
+                raise ValueError("No fused error columns found in CSV")
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            color_cycle = plt.rcParams['axes.prop_cycle'].by_key().get('color', [])
+
+            for idx, col in enumerate(sorted(target_cols)):
+                errors = data[col]
+                valid_mask = ~errors.isna()
+                if not valid_mask.any():
+                    continue
+
+                times = data.loc[valid_mask, time_col]
+                vals = errors[valid_mask]
+
+                m_pair = pair_pattern.fullmatch(col)
+                if m_pair:
+                    i_id, j_id = m_pair.groups()
+                    label = rf'$d^{{{i_id}{j_id}}}$'
+
+                color = color_cycle[idx % len(color_cycle)] if color_cycle else None
+                ax.plot(times, vals, label=label, color=color)
+
+            # 目標距離のガイドライン (15m, 30m)
+            plt.axhline(y=15, color='gray', linestyle=':', linewidth=1.5, alpha=0.8) # Target 15m
+            plt.axhline(y=30, color='gray', linestyle=':', linewidth=1.5, alpha=0.8) # Target 30m
+
+            # テキスト注釈 (論文のように "15m", "30m" と入れても良い)
+            plt.text(0.5, 15.5, 'Target: 15m', fontsize=10, color='gray')
+            plt.text(0.5, 30.5, 'Target: 30m', fontsize=10, color='gray')
+
+            ax.set_title('Inter-UAV Distance: $d^{ij}$', fontsize=16, fontweight='bold')
+            ax.set_xlabel('Time (sec)', fontsize=14)
+            ax.set_ylabel(r'Distance (m)', fontsize=14)
+            ax.grid(True)
+            ax.legend()
+
+            if save_filename is None:
+                timestamp_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
+                save_filename = f'inter_uav_distance_graph_{timestamp_str}.png'
+
+            save_path = f'../data/graph/inter_uav_dist/{save_filename}'
+            plt.savefig(save_path)
+            print(f"Graph successfully saved to {save_path}")
+
+            plt.show()
+
+        except FileNotFoundError:
+            print(f"Error: The file {filename} was not found.")
+        except Exception as e:
+            print(f"An error occurred while plotting: {e}")
