@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
+import re
 from typing import Optional
 
 
@@ -64,45 +65,54 @@ class Plotter:
             save_filename (Optional[str]): 保存するグラフファイル名（Noneの場合は自動生成）
         """
         try:
-            # Read CSV file
             file_path = f"../data/csv/RL_errors/{filename}"
             data = pd.read_csv(file_path)
 
+            time_col = 'time'
+            if time_col not in data.columns:
+                raise KeyError("`time` column is missing in the error CSV")
+
+            pair_pattern = re.compile(r"uav(\d+)_([\d]+)_fused_error")
+            single_pattern = re.compile(r"uav(\d+)_fused_error")
+
+            pair_cols = [c for c in data.columns if pair_pattern.fullmatch(c)]
+            single_cols = [c for c in data.columns if single_pattern.fullmatch(c)]
+
+            # 優先: ペア形式、なければ従来形式
+            target_cols = pair_cols if pair_cols else single_cols
+            if not target_cols:
+                raise ValueError("No fused error columns found in CSV")
+
             fig, ax = plt.subplots(figsize=(12, 6))
-            colors = {2: 'orange', 3: 'green', 4: 'red', 5: 'magenta', 6: 'brown'}
+            color_cycle = plt.rcParams['axes.prop_cycle'].by_key().get('color', [])
 
-            for i in range(2, 7):
-                errors = data[f'uav{i}_fused_error']
-                valid_times = data['time'][~errors.isna()]
-                valid_errors = errors[~errors.isna()]
+            for idx, col in enumerate(sorted(target_cols)):
+                errors = data[col]
+                valid_mask = ~errors.isna()
+                if not valid_mask.any():
+                    continue
 
-                if not valid_errors.empty:
-                    ax.plot(valid_times, valid_errors,
-                            label=rf'$||\pi_{{{i}1}} - \chi_{{{i}1}}||$',
-                            color=colors.get(i, 'k'))
+                times = data.loc[valid_mask, time_col]
+                vals = errors[valid_mask]
 
-            ax.set_title('Consensus-based RL Fusion Estimation', fontsize=20, fontweight='bold')
-            ax.set_xlabel('$k$ (sec)', fontsize=20)
-            ax.set_ylabel(r'$||\pi_{ij}(k) - \chi_{ij}(k)||$ (m)', fontsize=20)
-            ax.set_ylim(0, 50.0)
-            ax.tick_params(labelsize=16)
-            ax.legend()
+                m_pair = pair_pattern.fullmatch(col)
+                if m_pair:
+                    i_id, j_id = m_pair.groups()
+                    label = rf'$||\pi_{{{i_id}{j_id}}}(k) - \chi_{{{i_id}{j_id}}}(k)||$'
+                else:
+                    # fallback to single format uavX_fused_error (assumed target=1)
+                    i_id = single_pattern.fullmatch(col).group(1)
+                    label = rf'$||\pi_{{{i_id}1}}(k) - \chi_{{{i_id}1}}(k)||$'
+
+                color = color_cycle[idx % len(color_cycle)] if color_cycle else None
+                ax.plot(times, vals, label=label, color=color)
+
+            ax.set_title('Consensus-based RL Fusion Estimation', fontsize=16, fontweight='bold')
+            ax.set_xlabel('$k$ (sec)', fontsize=14)
+            ax.set_ylabel(r'$||\pi_{ij}(k) - \chi_{ij}(k)||$ (m)', fontsize=14)
             ax.grid(True)
+            ax.legend()
 
-            # 図4(e)のズームインした図を挿入
-            axins = ax.inset_axes((0.5, 0.5, 0.4, 0.4))
-            for i in range(2, 7):
-                errors = data[f'uav{i}_fused_error']
-                valid_times = data['time'][~errors.isna()]
-                valid_errors = errors[~errors.isna()]
-                if not valid_errors.empty:
-                    axins.plot(valid_times, valid_errors, color=colors.get(i, 'k'))
-            axins.set_xlim(98, 110)  # 論文のズーム範囲に合わせる
-            axins.set_ylim(0, 0.8)
-            axins.grid(True)
-            ax.indicate_inset_zoom(axins, edgecolor="black")  # ズーム箇所を四角で表示
-
-            # 保存ファイル名の生成
             if save_filename is None:
                 timestamp_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
                 save_filename = f'fused_RL_errors_graph_{timestamp_str}.png'
