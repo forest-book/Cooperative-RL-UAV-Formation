@@ -13,7 +13,6 @@ class DataLogger:
     def __init__(self):
         self.timestamp: List[float] = []
         self.uav_trajectories: Dict[str, List[np.ndarray]] = defaultdict(list)
-        self.fused_RL_errors: Dict[str, List[float]] = defaultdict(list) # todo delete
         self.fused_RL_errors_pair: Dict[str, List[float]] = defaultdict(list)
         self._creation_time = datetime.datetime.now()  # インスタンス生成時の時刻
 
@@ -22,9 +21,6 @@ class DataLogger:
 
     def logging_uav_trajectories(self, uav_id: int, uav_position: np.ndarray):
         self.uav_trajectories[f"uav{uav_id}_true_pos"].append(uav_position.copy())
-
-    def logging_fused_RL_error(self, uav_id: int, error: float):
-        self.fused_RL_errors[f"uav{uav_id}_fused_error"].append(error)
 
     def logging_fused_RL_error_pair(self, pair: tuple[int, int], error: float):
         """重複のないUAVペア (i<j) の推定誤差をロギング"""
@@ -224,14 +220,6 @@ class DataLogger:
 
                 error_series = [self.fused_RL_errors_pair[key] for key in headers[1:]]
                 for t, errors in zip(self.timestamp, zip(*error_series)):
-                    row = [t] + list(errors)
-                    writer.writerow(row)
-            else:
-                # 後方互換: 片方向ログがある場合 todo delete
-                headers = ['time'] + [f'uav{i}_fused_error' for i in range(2, 7)]
-                writer.writerow(headers)
-
-                for t, errors in zip(self.timestamp, zip(*[self.fused_RL_errors[f'uav{i}_fused_error'] for i in range(2, 7)])):
                     row = [t] + list(errors)
                     writer.writerow(row)
         print(f"Data successfully saved to {filename}")

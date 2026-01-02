@@ -73,13 +73,11 @@ class Plotter:
                 raise KeyError("`time` column is missing in the error CSV")
 
             pair_pattern = re.compile(r"uav(\d+)_([\d]+)_fused_error")
-            single_pattern = re.compile(r"uav(\d+)_fused_error")
 
             pair_cols = [c for c in data.columns if pair_pattern.fullmatch(c)]
-            single_cols = [c for c in data.columns if single_pattern.fullmatch(c)]
 
-            # 優先: ペア形式、なければ従来形式
-            target_cols = pair_cols if pair_cols else single_cols
+            # RL保存の形式が正規表現に合わなければ例外を発生
+            target_cols = pair_cols if pair_cols else None
             if not target_cols:
                 raise ValueError("No fused error columns found in CSV")
 
@@ -99,10 +97,6 @@ class Plotter:
                 if m_pair:
                     i_id, j_id = m_pair.groups()
                     label = rf'$||\pi_{{{i_id}{j_id}}}(k) - \chi_{{{i_id}{j_id}}}(k)||$'
-                else:
-                    # fallback to single format uavX_fused_error (assumed target=1)
-                    i_id = single_pattern.fullmatch(col).group(1)
-                    label = rf'$||\pi_{{{i_id}1}}(k) - \chi_{{{i_id}1}}(k)||$'
 
                 color = color_cycle[idx % len(color_cycle)] if color_cycle else None
                 ax.plot(times, vals, label=label, color=color)
