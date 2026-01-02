@@ -69,15 +69,18 @@ class MainController:
     def initialize_uav_setting(self):
         # UAVインスタンス化と初期位置・隣接機の設定をまとめて行う
         initial_positions: dict = self.params['INITIAL_POSITIONS']
+        initial_velocities: dict = self.params['INITIAL_VELOCITIES']
         neighbors_setting: dict = self.params['NEIGHBORS']
 
         self.uavs.clear()  # 明示的にリセットしてから生成
         for uav_id, position in initial_positions.items():
             neighbors = neighbors_setting.get(uav_id, [])
+            init_vel = initial_velocities.get(uav_id, [0, 0])
             self.uavs.append(
                 UAV(
                     uav_id=uav_id,
                     initial_position=position,
+                    initial_velocity=init_vel,
                     neighbors=neighbors,
                 )
             )
