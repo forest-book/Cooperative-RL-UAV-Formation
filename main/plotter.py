@@ -10,12 +10,13 @@ class Plotter:
     """
 
     @staticmethod
-    def plot_UAV_trajectories_from_csv(filename: str, save_filename: Optional[str] = None):
+    def plot_UAV_trajectories_from_csv(filename: str, total_uav_num: int, save_filename: Optional[str] = None):
         """
         複数のUAVの軌跡を2Dプロットする関数
 
         Args:
             filename (str): 読み込むCSVファイル名
+            total_uav_num (int): UAVの全機体数
             save_filename (Optional[str]): 保存するグラフファイル名（Noneの場合は自動生成）
         """
         try:
@@ -24,7 +25,7 @@ class Plotter:
             data = pd.read_csv(file_path)
 
             plt.figure(figsize=(10, 8))
-            for i in range(1, 7):
+            for i in range(1, total_uav_num+1):
                 x_positions = data[f'uav{i}_true_pos_x']
                 y_positions = data[f'uav{i}_true_pos_y']
                 plt.plot(x_positions, y_positions, label=f'UAV {i}')

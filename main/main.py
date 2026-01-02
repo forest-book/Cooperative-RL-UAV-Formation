@@ -278,7 +278,7 @@ class MainController:
         self.initialize()
 
         #for loop in range(self.loop_amount):
-        for loop in range(5):
+        for loop in range(25):
             print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
@@ -314,11 +314,11 @@ class MainController:
         total_uav_num = len(self.uavs)
         trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv(total_uav_num)
         error_filename = self.data_logger.save_fused_RL_errors_to_csv()
-        return
-        # グラフ生成
-        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
-        Plotter.plot_fused_RL_errors_from_csv(error_filename)
 
+        # グラフ生成
+        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename, total_uav_num)
+        Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        return
         # 統計情報の表示と保存
         self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
         self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
