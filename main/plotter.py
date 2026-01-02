@@ -123,13 +123,16 @@ class Plotter:
             print(f"An error occurred while plotting: {e}")
 
     @staticmethod
-    def plot_inter_uav_distance_from_csv(filename: str, save_filename: Optional[str] = None):
+    def plot_inter_uav_distance_from_csv(filename: str, save_filename: Optional[str] = None, target_distances: Optional[dict] = None):
         """
         UAV機体間距離をCSVファイルから読み込んでプロットする関数
 
         Args:
             filename (str): 読み込むCSVファイル名
             save_filename (Optional[str]): 保存するグラフファイル名（Noneの場合は自動生成）
+            target_distances (Optional[dict]): UAVペアごとの目標距離の辞書 
+                                               例: {(1,2): 15.0, (1,3): 30.0, (2,3): 15.0}
+                                               Noneの場合は目標距離のガイドラインを表示しない
         """
         try:
             file_path = f"../data/csv/inter_uav_dist/{filename}"
@@ -167,13 +170,29 @@ class Plotter:
                 color = color_cycle[idx % len(color_cycle)] if color_cycle else None
                 ax.plot(times, vals, label=label, color=color)
 
-            # 目標距離のガイドライン (15m, 30m)
-            plt.axhline(y=15, color='gray', linestyle=':', linewidth=1.5, alpha=0.8) # Target 15m
-            plt.axhline(y=30, color='gray', linestyle=':', linewidth=1.5, alpha=0.8) # Target 30m
-
-            # テキスト注釈 (論文のように "15m", "30m" と入れても良い)
-            plt.text(0.5, 15.5, 'Target: 15m', fontsize=10, color='gray')
-            plt.text(0.5, 30.5, 'Target: 30m', fontsize=10, color='gray')
+            # 目標距離のガイドラインを表示（指定された場合のみ）
+            if target_distances:
+                # 一意な目標距離値を収集
+                unique_targets = set()
+                for (i, j), target_dist in target_distances.items():
+                    unique_targets.add(target_dist)
+                
+                # X軸の範囲を取得してテキスト位置を動的に計算
+                times_all = data[time_col]
+                x_min, x_max = times_all.min(), times_all.max()
+                text_x = x_min + (x_max - x_min) * 0.02  # X軸の2%の位置
+                
+                # 各一意な目標距離に対してガイドラインを描画
+                for target_dist in sorted(unique_targets):
+                    # この目標距離に対応するUAVペアを収集
+                    pairs_for_this_target = [f"({i},{j})" for (i, j), dist in target_distances.items() if dist == target_dist]
+                    pairs_str = ", ".join(pairs_for_this_target)
+                    
+                    plt.axhline(y=target_dist, color='gray', linestyle=':', linewidth=1.5, alpha=0.8)
+                    # Y軸の位置をデータレンジに基づいて調整
+                    text_y_offset = (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.01  # Y軸範囲の1%
+                    plt.text(text_x, target_dist + text_y_offset, f'Target: {target_dist}m {pairs_str}', 
+                            fontsize=10, color='gray', verticalalignment='bottom')
 
             ax.set_title('Inter-UAV Distance: $d^{ij}$', fontsize=16, fontweight='bold')
             ax.set_xlabel('Time (sec)', fontsize=14)
