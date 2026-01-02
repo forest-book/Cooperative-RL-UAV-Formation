@@ -352,10 +352,10 @@ class MainController:
         anim = FormationAnimator(
             trajectory_filename=trajectory_filename,
             total_uav_num=3,
-            tail_length=80,      # optional: trail length in frames; None/0 for full path
+            tail_length=0,      # optional: trail length in frames; None/0 for full path
             interval_ms=50,      # frame interval (ms)
         )
-        anim.animate(save=True, show=True)
+        anim.animate(save=True, show=True, speed_multiplier=4.0)
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
