@@ -115,10 +115,15 @@ class FormationAnimator:
         frame_step: int = 1,
         dpi: int = 120,
     ):
+        total_frames = len(self.times)
+        if total_frames == 0:
+            print("time 列が空のためアニメーションを生成できません。CSV を確認してください。")
+            return None
+
         frame_step = max(1, int(frame_step))
-        frame_indices = list(range(0, len(self.times), frame_step))
-        if frame_indices[-1] != len(self.times) - 1:
-            frame_indices.append(len(self.times) - 1)
+        frame_indices = list(range(0, total_frames, frame_step))
+        if frame_indices[-1] != total_frames - 1:
+            frame_indices.append(total_frames - 1)
 
         anim = animation.FuncAnimation(
             self.fig,
@@ -151,10 +156,11 @@ class FormationAnimator:
             output_path = f"../data/graph/trajectories/{save_filename}"
 
             try:
-                anim.save(output_path, writer=writer, dpi=dpi, savefig_kwargs={"dpi": dpi})
+                print(f"Saving animation to {output_path} using {writer_name}...")
+                anim.save(output_path, writer=writer, dpi=dpi)
                 print(f"Animation saved to {output_path}")
             except Exception as exc:
-                print(f"アニメーションの保存に失敗しました ({writer} 使用): {exc}")
+                print(f"アニメーションの保存に失敗しました ({writer_name} 使用): {exc}")
 
         if show:
             plt.show()
