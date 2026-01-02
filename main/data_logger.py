@@ -1,7 +1,7 @@
 import csv
 import json
 import numpy as np
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 import datetime
 
@@ -22,7 +22,7 @@ class DataLogger:
     def logging_uav_trajectories(self, uav_id: int, uav_position: np.ndarray):
         self.uav_trajectories[f"uav{uav_id}_true_pos"].append(uav_position.copy())
 
-    def logging_fused_RL_error_pair(self, pair: tuple[int, int], error: float):
+    def logging_fused_RL_error_pair(self, pair: Tuple[int, int], error: float):
         """重複のないUAVペア (i<j) の推定誤差をロギング"""
         i, j = sorted(pair)
         self.fused_RL_errors_pair[f"uav{i}_{j}_fused_error"].append(error)

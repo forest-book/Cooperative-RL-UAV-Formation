@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List
+from typing import List, Tuple
 
 from quadcopter import UAV
 from estimator import Estimator
@@ -159,10 +159,10 @@ class MainController:
             fused_RLs.append(uav.fused_estimates[key][loop].copy())
         return fused_RLs
 
-    def iter_unique_uav_pairs(self) -> List[tuple[int, int]]:
+    def iter_unique_uav_pairs(self) -> List[Tuple[int, int]]:
         """(i, j) 形式で i<j の重複しないUAVペア一覧を返す"""
         ids = sorted([uav.id for uav in self.uavs])
-        pairs: List[tuple[int, int]] = []
+        pairs: List[Tuple[int, int]] = []
         for idx, uav_id in enumerate(ids):
             for other_id in ids[idx + 1:]:
                 pairs.append((uav_id, other_id))
