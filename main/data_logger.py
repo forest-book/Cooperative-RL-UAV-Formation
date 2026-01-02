@@ -17,6 +17,25 @@ class DataLogger:
         self.inter_uav_distance_pair: Dict[str, List[float]] = defaultdict(list)
         self._creation_time = datetime.datetime.now()  # インスタンス生成時の時刻
 
+    @staticmethod
+    def _parse_pair_key(key: str) -> Tuple[int, int]:
+        """キー uav<i>_<j>_fused_error から (i, j) を取り出す"""
+        prefix = "uav"
+        suffix = "_fused_error"
+        if not (key.startswith(prefix) and key.endswith(suffix)):
+            raise ValueError(f"Unexpected pair key format: {key}")
+        body = key[len(prefix):-len(suffix)]
+        parts = body.split("_")
+        if len(parts) != 2:
+            raise ValueError(f"Unexpected pair key format: {key}")
+        return int(parts[0]), int(parts[1])
+
+    @staticmethod
+    def _pair_label(pair: Tuple[int, int]) -> str:
+        """(i, j) を 'i-j' 形式の表示ラベルに変換する"""
+        i, j = pair
+        return f"{i}-{j}"
+
     def logging_timestamp(self, time: float):
         self.timestamp.append(time)
 
@@ -33,64 +52,51 @@ class DataLogger:
         i, j = sorted(pair)
         self.inter_uav_distance_pair[f"dist_{i}_{j}"].append(distance)
 
-    def calc_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0) -> Dict[int, Dict[str, float]]:
+    def calc_fused_RL_error_statistics(self, transient_time: float = 10.0) -> Dict[str, Dict[str, float]]:
         """
-        各UAVの融合推定誤差の平均と分散を計算する関数
+        融合推定誤差（ペア単位）の平均・分散・標準偏差などを算出する
 
         Args:
             transient_time (float): 過渡状態として除外する時間 [秒]（デフォルト: 10秒）
-            total_uav_num (int): UAVの全機体数
 
         Returns:
-            Dict[int, Dict[str, float]]: UAV IDをキーとし、'mean'と'variance'を含む辞書
-                例: {1: {'mean': 0.123, 'variance': 0.456}, 2: {...}, ...}
+            Dict[str, Dict[str, float]]: キーは "uav<i>_<j>_fused_error"、値は統計量の辞書
         """
-        statistics = {}
+        statistics: Dict[str, Dict[str, float]] = {}
 
         # サンプリング周期を推定（最初の2つのタイムスタンプから）
         if len(self.timestamp) >= 2:
             dt = self.timestamp[1] - self.timestamp[0]
-            transient_steps = int(transient_time / dt)
+            transient_steps = int(transient_time / dt) if dt > 0 else 0
         else:
             transient_steps = 0
 
-        # UAVの推定誤差について統計を計算
-        for uav_id in range(total_uav_num):
-            key = f"uav{uav_id}_fused_error"
-            if key in self.fused_RL_errors:
-                errors = self.fused_RL_errors[key]
+        for key in sorted(self.fused_RL_errors_pair.keys()):
+            errors = self.fused_RL_errors_pair[key]
+            stable_errors = [e for e in errors[transient_steps:] if e is not None and not np.isnan(e)]
 
-                # 過渡状態を除外し、有効な誤差のみを抽出
-                stable_errors = [e for e in errors[transient_steps:] if e is not None and not np.isnan(e)]
-
-                if stable_errors:
-                    mean_error = np.mean(stable_errors)
-                    variance = np.var(stable_errors)
-                    statistics[uav_id] = {
-                        'mean': mean_error,
-                        'variance': variance,
-                        'std': np.sqrt(variance),
-                        'num_samples': len(stable_errors)
-                    }
-                else:
-                    statistics[uav_id] = {
-                        'mean': None,
-                        'variance': None,
-                        'std': None,
-                        'num_samples': 0
-                    }
+            if stable_errors:
+                mean_error = float(np.mean(stable_errors))
+                variance = float(np.var(stable_errors))
+                statistics[key] = {
+                    'mean': mean_error,
+                    'variance': variance,
+                    'std': float(np.sqrt(variance)),
+                    'num_samples': len(stable_errors)
+                }
+            else:
+                statistics[key] = {
+                    'mean': None,
+                    'variance': None,
+                    'std': None,
+                    'num_samples': 0
+                }
 
         return statistics
 
-    def print_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0):
-        """
-        融合推定誤差の統計情報をコンソールに表示する関数
-
-        Args:
-            transient_time (float): 過渡状態として除外する時間 [秒]
-            total_uav_num (int): UAVの全機体数
-        """
-        statistics = self.calc_fused_RL_error_statistics(total_uav_num, transient_time)
+    def print_fused_RL_error_statistics(self, transient_time: float = 10.0):
+        """融合推定誤差の統計情報をコンソールに表示する（ペアベース）"""
+        statistics = self.calc_fused_RL_error_statistics(transient_time)
 
         print("\n" + "="*70)
         print(f"  融合RL推定誤差の統計 ({transient_time}秒後から安定状態)")
@@ -98,13 +104,14 @@ class DataLogger:
         print(f"{'UAV Pair':<10} | {'Mean Error (m)':<18} | {'Variance':<15} | {'Std Dev (m)':<15}")
         print("-" * 70)
 
-        for uav_id in range(total_uav_num):
-            if uav_id in statistics:
-                stats = statistics[uav_id]
-                if stats['mean'] is not None:
-                    print(f" {uav_id}→1    | {stats['mean']:<18.6f} | {stats['variance']:<15.6f} | {stats['std']:<15.6f}")
-                else:
-                    print(f" {uav_id}→1    | {'N/A':<18} | {'N/A':<15} | {'N/A':<15}")
+        for key in sorted(statistics.keys()):
+            stats = statistics[key]
+            pair = self._parse_pair_key(key)
+            label = self._pair_label(pair)
+            if stats['mean'] is not None:
+                print(f" {label:<9} | {stats['mean']:<18.6f} | {stats['variance']:<15.6f} | {stats['std']:<15.6f}")
+            else:
+                print(f" {label:<9} | {'N/A':<18} | {'N/A':<15} | {'N/A':<15}")
 
         print("="*70)
         return statistics
@@ -144,8 +151,9 @@ class DataLogger:
                 'statistics': {}
             }
 
-            for uav_id, stats in statistics.items():
-                json_data['statistics'][f'UAV_{uav_id}_to_1'] = {
+            for key, stats in statistics.items():
+                pair = self._parse_pair_key(key)
+                json_data['statistics'][f'UAV_{pair[0]}_{pair[1]}'] = {
                     'mean': float(stats['mean']) if stats['mean'] is not None else None,
                     'variance': float(stats['variance']) if stats['variance'] is not None else None,
                     'std': float(stats['std']) if stats['std'] is not None else None,
@@ -164,19 +172,20 @@ class DataLogger:
                 f.write(f"{'UAV Pair':<10} | {'Mean Error (m)':<18} | {'Variance':<15} | {'Std Dev (m)':<15}\n")
                 f.write("-" * 70 + "\n")
 
-                for uav_id in range(2, 7):
-                    if uav_id in statistics:
-                        stats = statistics[uav_id]
-                        if stats['mean'] is not None:
-                            f.write(f" {uav_id}→1    | {stats['mean']:<18.6f} | {stats['variance']:<15.6f} | {stats['std']:<15.6f}\n")
-                        else:
-                            f.write(f" {uav_id}→1    | {'N/A':<18} | {'N/A':<15} | {'N/A':<15}\n")
+                for key, stats in sorted(statistics.items()):
+                    pair = self._parse_pair_key(key)
+                    label = self._pair_label(pair)
+                    if stats['mean'] is not None:
+                        f.write(f" {label:<9} | {stats['mean']:<18.6f} | {stats['variance']:<15.6f} | {stats['std']:<15.6f}\n")
+                    else:
+                        f.write(f" {label:<9} | {'N/A':<18} | {'N/A':<15} | {'N/A':<15}\n")
 
                 f.write("="*70 + "\n")
                 f.write(f"\nサンプル数:\n")
-                for uav_id in range(2, 7):
-                    if uav_id in statistics:
-                        f.write(f"  UAV {uav_id}→1: {statistics[uav_id]['num_samples']} samples\n")
+                for key, stats in sorted(statistics.items()):
+                    pair = self._parse_pair_key(key)
+                    label = self._pair_label(pair)
+                    f.write(f"  UAV {label}: {stats['num_samples']} samples\n")
 
         print(f"Statistics successfully saved to {dir_path}")
         return dir_path

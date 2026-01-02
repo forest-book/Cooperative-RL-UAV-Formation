@@ -331,11 +331,11 @@ class MainController:
         Plotter.plot_UAV_trajectories_from_csv(trajectory_filename, total_uav_num)
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
         Plotter.plot_inter_uav_distance_from_csv(inter_dist_filename)
-        return
+
         # 統計情報の表示と保存
-        #self.data_logger.print_fused_RL_error_statistics(total_uav_num=len(self.uavs))
-        #self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
-        #self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
+        self.data_logger.print_fused_RL_error_statistics(transient_time=10.0)
+        self.data_logger.save_fused_RL_error_statistics(transient_time=10.0)
+        self.data_logger.save_fused_RL_error_statistics(transient_time=10.0, format='txt')
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
