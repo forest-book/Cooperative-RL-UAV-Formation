@@ -122,6 +122,15 @@ class MainController:
         inter_uav_distance = np.linalg.norm(true_rel_pos)
         return inter_uav_distance
 
+    def calc_uav_relative_velocity(self, uav_i_id: int, uav_j_id: int) -> np.ndarray:
+        # 真の相対速度
+        target_uav = self.get_uav_by_id(uav_j_id)
+        uav_i = self.get_uav_by_id(uav_i_id)
+        true_rel_velocity = target_uav.true_velocity - uav_i.true_velocity
+        # ノルムをとって速さに直す
+        rel_velocity_magnitude = np.linalg.norm(true_rel_velocity)
+        return rel_velocity_magnitude
+
     def build_measurements_cache(self) -> dict:
         """全UAVペア間の測定値を事前計算してキャッシュする"""
         measurements_cache = {}
@@ -319,6 +328,9 @@ class MainController:
 
                 inter_uav_distance = self.calc_inter_uav_distance(uav_i_id, uav_j_id)
                 self.data_logger.logging_inter_uav_distance_pair((uav_i_id, uav_j_id), inter_uav_distance)
+
+                rel_velocity = self.calc_uav_relative_velocity(uav_i_id, uav_j_id)
+                self.data_logger.logging_relative_velocity_pair((uav_i_id, uav_j_id), rel_velocity)
             self.show_simulation_progress(loop=loop)
 
         # ロギングした推定誤差をcsv出力
@@ -326,11 +338,13 @@ class MainController:
         trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv(total_uav_num)
         error_filename = self.data_logger.save_fused_RL_errors_to_csv()
         inter_dist_filename = self.data_logger.save_inter_uav_distance_to_csv()
+        rel_velocity_filename = self.data_logger.save_relative_velocity_to_csv()
 
         # グラフ生成
         Plotter.plot_UAV_trajectories_from_csv(trajectory_filename, total_uav_num)
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
         Plotter.plot_inter_uav_distance_from_csv(inter_dist_filename)
+        Plotter.plot_relative_velocity_from_csv(rel_velocity_filename)
 
         # 統計情報の表示と保存
         self.data_logger.print_fused_RL_error_statistics(transient_time=10.0)

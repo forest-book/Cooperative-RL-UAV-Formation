@@ -195,3 +195,67 @@ class Plotter:
             print(f"Error: The file {filename} was not found.")
         except Exception as e:
             print(f"An error occurred while plotting: {e}")
+
+    def plot_relative_velocity_from_csv(filename: str, save_filename: Optional[str] = None):
+        """
+        UAV機体間の相対速度をCSVファイルから読み込んでプロットする関数
+
+        Args:
+            filename (str): 読み込むCSVファイル名
+            save_filename (Optional[str]): 保存するグラフファイル名（Noneの場合は自動生成）
+        """
+        try:
+            file_path = f"../data/csv/relative_velocity/{filename}"
+            data = pd.read_csv(file_path)
+
+            time_col = 'time'
+            if time_col not in data.columns:
+                raise KeyError("`time` column is missing in the relative velocity CSV")
+
+            pair_pattern = re.compile(r"rel_vel_(\d+)_(\d+)")
+            pair_cols = [col for col in data.columns if pair_pattern.fullmatch(col)]
+
+            target_cols = pair_cols if pair_cols else None
+            if not target_cols:
+                raise ValueError("No relative velocity columns found in CSV")
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            color_cycle = plt.rcParams['axes.prop_cycle'].by_key().get('color', [])
+
+            for idx, col in enumerate(sorted(target_cols)):
+                velocities = data[col]
+                valid_mask = ~velocities.isna()
+                if not valid_mask.any():
+                    continue
+
+                times = data.loc[valid_mask, time_col]
+                vals = velocities[valid_mask]
+
+                m_pair = pair_pattern.fullmatch(col)
+                if m_pair:
+                    i_id, j_id = m_pair.groups()
+                    label = rf'$||v^{{{i_id}{j_id}}}||$'
+
+                color = color_cycle[idx % len(color_cycle)] if color_cycle else None
+                ax.plot(times, vals, label=label, color=color)
+
+            ax.set_title('Inter-UAV Relative Velocity Magnitude', fontsize=16, fontweight='bold')
+            ax.set_xlabel('Time (sec)', fontsize=14)
+            ax.set_ylabel(r'Relative Velocity Magnitude (m/s)', fontsize=14)
+            ax.grid(True)
+            ax.legend()
+
+            if save_filename is None:
+                timestamp_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
+                save_filename = f'relative_velocity_graph_{timestamp_str}.png'
+
+            save_path = f'../data/graph/relative_velocity/{save_filename}'
+            plt.savefig(save_path)
+            print(f"Graph successfully saved to {save_path}")
+
+            plt.show()
+
+        except FileNotFoundError:
+            print(f"Error: The file {filename} was not found.")
+        except Exception as e:
+            print(f"An error occurred while plotting: {e}")
