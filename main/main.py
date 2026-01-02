@@ -285,17 +285,17 @@ class MainController:
     def get_target_distances_dict(self) -> dict:
         """
         設定ファイルから目標距離の辞書を生成する
-        
+
         Returns:
             dict: UAVペアごとの目標距離の辞書 {(i, j): distance}
                   設定ファイルにTARGET_DISTANCESがあればそれを使用、
                   なければDISTパラメータを全ペアに適用
-        
+
         Raises:
             ValueError: TARGET_DISTANCESの形式が不正な場合
         """
         target_distances = {}
-        
+
         # TARGET_DISTANCESが設定されている場合（ペアごとの目標距離）
         if 'TARGET_DISTANCES' in self.params:
             for pair_key, distance in self.params['TARGET_DISTANCES'].items():
@@ -323,7 +323,7 @@ class MainController:
                 for neighbor_id in uav_i.neighbors:
                     if uav_i.id < neighbor_id:
                         target_distances[(uav_i.id, neighbor_id)] = float(default_dist)
-        
+
         return target_distances
 
     def run(self):
