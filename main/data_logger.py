@@ -53,10 +53,10 @@ class DataLogger:
         i, j = sorted(pair)
         self.inter_uav_distance_pair[f"dist_{i}_{j}"].append(distance)
 
-    def logging_relative_velocity_pair(self, pair: Tuple[int, int], rel_velocity: np.ndarray):
+    def logging_relative_velocity_pair(self, pair: Tuple[int, int], rel_velocity: float):
         """重複のないUAVペア (i<j) の相対速度をロギング"""
         i, j = sorted(pair)
-        self.relative_velocity_pair[f"rel_vel_{i}_{j}"].append(rel_velocity.copy())
+        self.relative_velocity_pair[f"rel_vel_{i}_{j}"].append(rel_velocity)
 
     def calc_fused_RL_error_statistics(self, transient_time: float = 10.0) -> Dict[str, Dict[str, float]]:
         """
