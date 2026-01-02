@@ -37,10 +37,11 @@ class DataLogger:
 
         Args:
             transient_time (float): 過渡状態として除外する時間 [秒]（デフォルト: 10秒）
+            total_uav_num (int): UAVの全機体数
 
         Returns:
             Dict[int, Dict[str, float]]: UAV IDをキーとし、'mean'と'variance'を含む辞書
-                例: {2: {'mean': 0.123, 'variance': 0.456}, 3: {...}, ...}
+                例: {1: {'mean': 0.123, 'variance': 0.456}, 2: {...}, ...}
         """
         statistics = {}
 
@@ -51,8 +52,8 @@ class DataLogger:
         else:
             transient_steps = 0
 
-        # UAV 2~6 の誤差について統計を計算
-        for uav_id in range(2, 7):
+        # UAVの推定誤差について統計を計算
+        for uav_id in range(total_uav_num):
             key = f"uav{uav_id}_fused_error"
             if key in self.fused_RL_errors:
                 errors = self.fused_RL_errors[key]
@@ -79,14 +80,15 @@ class DataLogger:
 
         return statistics
 
-    def print_fused_RL_error_statistics(self, transient_time: float = 10.0):
+    def print_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0):
         """
         融合推定誤差の統計情報をコンソールに表示する関数
 
         Args:
             transient_time (float): 過渡状態として除外する時間 [秒]
+            total_uav_num (int): UAVの全機体数
         """
-        statistics = self.calc_fused_RL_error_statistics(transient_time)
+        statistics = self.calc_fused_RL_error_statistics(total_uav_num, transient_time)
 
         print("\n" + "="*70)
         print(f"  融合RL推定誤差の統計 ({transient_time}秒後から安定状態)")
@@ -94,7 +96,7 @@ class DataLogger:
         print(f"{'UAV Pair':<10} | {'Mean Error (m)':<18} | {'Variance':<15} | {'Std Dev (m)':<15}")
         print("-" * 70)
 
-        for uav_id in range(2, 7):
+        for uav_id in range(total_uav_num):
             if uav_id in statistics:
                 stats = statistics[uav_id]
                 if stats['mean'] is not None:
