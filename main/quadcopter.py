@@ -28,5 +28,5 @@ class UAV:
 
         # 位置の更新: v [m/s] × dt [s] = 変位 [m]
         self.true_position += self.true_velocity * dt
-        print(f"uav_{self.id}の次ステップの位置")
-        print(self.true_position)
+        #print(f"uav_{self.id}の次ステップの位置")
+        #print(self.true_position)
