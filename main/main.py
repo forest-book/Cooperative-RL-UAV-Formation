@@ -355,7 +355,7 @@ class MainController:
             tail_length=80,      # optional: trail length in frames; None/0 for full path
             interval_ms=50,      # frame interval (ms)
         )
-        anim.animate(save=True, save_filename="formation.mp4", show=True)
+        anim.animate(save=True, show=True)
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む

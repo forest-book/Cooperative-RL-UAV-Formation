@@ -114,6 +114,7 @@ class FormationAnimator:
         show: bool = True,
         frame_step: int = 1,
         dpi: int = 120,
+        speed_multiplier: float = 4.0,
     ):
         total_frames = len(self.times)
         if total_frames == 0:
@@ -136,24 +137,36 @@ class FormationAnimator:
 
         output_path = None
         if save:
+            timestamp_str = datetime.datetime.now().strftime(r"%Y-%m-%d-%H-%M-%S")
             if save_filename is None:
-                timestamp_str = datetime.datetime.now().strftime(r"%Y-%m-%d-%H-%M-%S")
                 default_ext = "mp4" if animation.writers.is_available("ffmpeg") else "gif"
                 save_filename = f"uav_formation_animation_{timestamp_str}.{default_ext}"
+            else:
+                # ユーザー指定のファイル名にもタイムスタンプを追加
+                name_parts = save_filename.rsplit(".", 1)
+                if len(name_parts) == 2:
+                    save_filename = f"{name_parts[0]}_{timestamp_str}.{name_parts[1]}"
+                else:
+                    save_filename = f"{save_filename}_{timestamp_str}"
 
             requested_ext = save_filename.lower().split(".")[-1]
             writer_name, resolved_ext = self._select_writer(requested_ext)
             if resolved_ext != requested_ext:
                 save_filename = save_filename.rsplit(".", 1)[0] + f".{resolved_ext}"
 
-            fps = max(1, int(1000 / (self.interval_ms * frame_step)))
+            # speed_multiplier を適用して FPS を調整（倍速再生）
+            base_fps = max(1, int(1000 / (self.interval_ms * frame_step)))
+            fps = max(1, int(base_fps * speed_multiplier))
             if writer_name == "pillow":
-                # PillowWriter keeps memory low by streaming frames
                 writer = animation.PillowWriter(fps=fps, metadata={"software": "matplotlib"})
+            elif writer_name == "ffmpeg":
+                writer = animation.FFMpegWriter(fps=fps, metadata={"software": "matplotlib"})
+            elif writer_name == "imagemagick":
+                writer = animation.ImageMagickWriter(fps=fps, metadata={"software": "matplotlib"})
             else:
                 writer = writer_name
 
-            output_path = f"../data/graph/trajectories/{save_filename}"
+            output_path = f"../data/movie/trajectories/{save_filename}"
 
             try:
                 print(f"Saving animation to {output_path} using {writer_name}...")
