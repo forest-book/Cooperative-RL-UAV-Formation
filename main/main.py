@@ -347,6 +347,16 @@ class MainController:
         self.data_logger.save_fused_RL_error_statistics(transient_time=10.0)
         self.data_logger.save_fused_RL_error_statistics(transient_time=10.0, format='txt')
 
+        from animator import FormationAnimator
+
+        anim = FormationAnimator(
+            trajectory_filename=trajectory_filename,
+            total_uav_num=3,
+            tail_length=80,      # optional: trail length in frames; None/0 for full path
+            interval_ms=50,      # frame interval (ms)
+        )
+        anim.animate(save=True, save_filename="formation.mp4", show=True)
+
 if __name__ == '__main__':
     # 設定ファイルから読み込む
     # JSON形式
