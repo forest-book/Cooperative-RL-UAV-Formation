@@ -196,6 +196,7 @@ class Plotter:
         except Exception as e:
             print(f"An error occurred while plotting: {e}")
 
+    @staticmethod
     def plot_relative_velocity_from_csv(filename: str, save_filename: Optional[str] = None):
         """
         UAV機体間の相対速度をCSVファイルから読み込んでプロットする関数
