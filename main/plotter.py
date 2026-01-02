@@ -137,15 +137,15 @@ class Plotter:
 
             time_col = 'time'
             if time_col not in data.columns:
-                raise KeyError("`time` column is missing in the error CSV")
+                raise KeyError("`time` column is missing in the inter-uav  distance CSV")
 
             pair_pattern = re.compile(r"dist_(\d+)_([\d]+)")
             pair_cols = [col for col in data.columns if pair_pattern.fullmatch(col)]
 
-            # RL保存の形式が正規表現に合わなければ例外を発生
+            # UAV間距離保存の形式が正規表現に合わなければ例外を発生
             target_cols = pair_cols if pair_cols else None
             if not target_cols:
-                raise ValueError("No fused error columns found in CSV")
+                raise ValueError("No inter-uav distance columns found in CSV")
 
             fig, ax = plt.subplots(figsize=(12, 6))
             color_cycle = plt.rcParams['axes.prop_cycle'].by_key().get('color', [])
