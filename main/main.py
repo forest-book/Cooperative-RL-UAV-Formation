@@ -193,7 +193,6 @@ class MainController:
         """直接推定の1ステップを実行する"""
         for uav_i in self.uavs:
             for neighbor_id in uav_i.neighbors:
-                #print(f"uav_{uav_i.id}_{neighbor_id}")
                 # キャッシュからノイズ付き観測値を取得
                 noisy_v, noisy_d, noisy_d_dot = measurements_cache[(uav_i.id, neighbor_id)]
                 # 式(1)の計算
@@ -210,7 +209,6 @@ class MainController:
                 ) # 次のステップ(k=loop + 1)の時の相対位置を直接推定
                 # uav_iは直接推定値を持っている
                 uav_i.direct_estimates[key].append(next_direct.copy())
-                #print(uav_i.direct_estimates)
 
     def exec_indirect_estimation(self, uav_i: UAV, target_j_uav: UAV, loop: int) -> List[np.ndarray]:
         """事実上の間接推定の1ステップを実行する"""
@@ -237,7 +235,6 @@ class MainController:
         # 自機以外のすべてのUAVに対する融合推定値を算出する
         for uav_i in self.uavs:
             for target_j_uav in self.uavs:
-                #print(f"uav_{uav_i.id}_{target_j_uav.id}")
                 # 自機以外のすべてのUAVの内1機をtargetとして推定するのを繰り返す
                 if target_j_uav.id == uav_i.id:
                     continue  # 自身への推定は行わない
@@ -267,7 +264,6 @@ class MainController:
                 ) # 次のステップ(k=loop + 1)の時の相対位置を融合推定
 
                 uav_i.fused_estimates[fused_key].append(next_fused.copy())
-                #print(uav_i.fused_estimates)
 
     def apply_control_input(self, measurements_cache, loop):
         """次のステップの制御入力（速度）を算出し適用する"""
@@ -286,7 +282,6 @@ class MainController:
                 gamma1=self.params['GAMMA1'],
                 gamma2=self.params['GAMMA2']
             )
-            #print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
             uav_i.control_input = next_velocity
         return
 
@@ -299,8 +294,6 @@ class MainController:
         self.initialize()
 
         for loop in range(self.loop_amount):
-        #for loop in range(25):
-            #print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
 
