@@ -171,7 +171,8 @@ class FormationAnimator:
             elif writer_name == "ffmpeg":
                 writer = animation.FFMpegWriter(
                     fps=fps,
-                    metadata={"software": "matplotlib"}
+                    metadata={"software": "matplotlib"},
+                    extra_args=['-vcodec', 'libx264', '-preset', 'ultrafast', '-crf', '25']
                 )
             elif writer_name == "imagemagick":
                 writer = animation.ImageMagickWriter(fps=fps, metadata={"software": "matplotlib"})
