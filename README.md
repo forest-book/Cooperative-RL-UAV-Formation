@@ -354,7 +354,7 @@ UAV Pair   | Mean Error (m)     | Variance       | Std Dev (m)
 
 ## 連絡先
 
-（連絡先情報を追加してください）
+本プロジェクトに関するお問い合わせや議論は、本リポジトリの GitHub Issues または（有効な場合）Discussions を通じて行ってください。
 
 ---
 
