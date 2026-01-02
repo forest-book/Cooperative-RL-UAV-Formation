@@ -15,6 +15,7 @@ class DataLogger:
         self.uav_trajectories: Dict[str, List[np.ndarray]] = defaultdict(list)
         self.fused_RL_errors_pair: Dict[str, List[float]] = defaultdict(list)
         self.inter_uav_distance_pair: Dict[str, List[float]] = defaultdict(list)
+        self.relative_velocity_pair: Dict[str, List[float]] = defaultdict(list) # 実際は相対速度の大きさを保存
         self._creation_time = datetime.datetime.now()  # インスタンス生成時の時刻
 
     @staticmethod
@@ -51,6 +52,11 @@ class DataLogger:
         """重複のないUAVペア (i<j) の機体間距離をロギング"""
         i, j = sorted(pair)
         self.inter_uav_distance_pair[f"dist_{i}_{j}"].append(distance)
+
+    def logging_relative_velocity_pair(self, pair: Tuple[int, int], rel_velocity: float):
+        """重複のないUAVペア (i<j) の相対速度をロギング"""
+        i, j = sorted(pair)
+        self.relative_velocity_pair[f"rel_vel_{i}_{j}"].append(rel_velocity)
 
     def calc_fused_RL_error_statistics(self, transient_time: float = 10.0) -> Dict[str, Dict[str, float]]:
         """
@@ -259,6 +265,30 @@ class DataLogger:
                 dist_series = [self.inter_uav_distance_pair[key] for key in headers[1:]]
                 for t, dist in zip(self.timestamp, zip(*dist_series)):
                     row = [t] + list(dist)
+                    writer.writerow(row)
+        print(f"Data successfully saved to {filename}")
+        return filename
+
+    def save_relative_velocity_to_csv(self, filename: Optional[str] = None):
+        """
+        UAVの相対速度をcsv保存する関数
+
+        Args:
+            filename (Optional[str]): 保存するCSVファイル名（Noneの場合は自動生成）
+        """
+        if filename is None:
+            filename = f'relative_velocity_{self._creation_time.strftime(r"%Y-%m-%d-%H-%M-%S")}.csv'
+
+        dir_path = "../data/csv/relative_velocity/" + filename
+        with open(dir_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            if self.relative_velocity_pair:
+                headers = ['time'] + sorted(self.relative_velocity_pair.keys())
+                writer.writerow(headers)
+
+                vel_series = [self.relative_velocity_pair[key] for key in headers[1:]]
+                for t, vel in zip(self.timestamp, zip(*vel_series)):
+                    row = [t] + list(vel)
                     writer.writerow(row)
         print(f"Data successfully saved to {filename}")
         return filename
