@@ -85,6 +85,7 @@ class Plotter:
             times = data.loc[valid_mask, time_col]
             vals = values[valid_mask]
 
+            label = col  # Default to column name
             m_pair = pattern.fullmatch(col)
             if m_pair:
                 i_id, j_id = m_pair.groups()
@@ -131,7 +132,7 @@ class Plotter:
             str: 保存先のフルパス
         """
         if save_filename is None:
-            timestamp_str = datetime.datetime.now().strftime(r'%Y-%m-%d-%H-%M-%S')
+            timestamp_str = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
             save_filename = f'{default_prefix}_{timestamp_str}.png'
         return f'{base_dir}/{save_filename}'
 
