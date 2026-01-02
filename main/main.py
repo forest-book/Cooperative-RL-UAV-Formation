@@ -351,7 +351,7 @@ class MainController:
 
         anim = FormationAnimator(
             trajectory_filename=trajectory_filename,
-            total_uav_num=3,
+            total_uav_num=total_uav_num,
             tail_length=0,      # optional: trail length in frames; None/0 for full path
             interval_ms=50,      # frame interval (ms)
         )
