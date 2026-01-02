@@ -122,7 +122,7 @@ class MainController:
         inter_uav_distance = np.linalg.norm(true_rel_pos)
         return inter_uav_distance
 
-    def calc_uav_relative_velocity(self, uav_i_id: int, uav_j_id: int) -> np.ndarray:
+    def calc_uav_relative_velocity(self, uav_i_id: int, uav_j_id: int) -> float:
         # 真の相対速度
         target_uav = self.get_uav_by_id(uav_j_id)
         uav_i = self.get_uav_by_id(uav_i_id)
