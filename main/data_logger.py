@@ -177,11 +177,12 @@ class DataLogger:
         print(f"Statistics successfully saved to {dir_path}")
         return dir_path
 
-    def save_UAV_trajectories_data_to_csv(self, filename: Optional[str] = None):
+    def save_UAV_trajectories_data_to_csv(self, total_uav_num: int, filename: Optional[str] = None):
         """
         複数のUAVの軌道(2D)をcsv保存する関数
 
         Args:
+            total_uav_num (int): UAVの全機体数
             filename (Optional[str]): 保存するCSVファイル名（Noneの場合は自動生成）
         """
         if filename is None:
@@ -191,11 +192,11 @@ class DataLogger:
         with open(dir_path, mode='w', newline='') as file:
             writer = csv.writer(file)
             # Write headers
-            headers = ['time'] + [f'uav{i}_true_pos_x' for i in range(1, 7)] + [f'uav{i}_true_pos_y' for i in range(1, 7)]
+            headers = ['time'] + [f'uav{i}_true_pos_x' for i in range(1, total_uav_num+1)] + [f'uav{i}_true_pos_y' for i in range(1, total_uav_num+1)]
             writer.writerow(headers)
 
             # Write data
-            for t, positions in zip(self.timestamp, zip(*[self.uav_trajectories[f'uav{i}_true_pos'] for i in range(1, 7)])):
+            for t, positions in zip(self.timestamp, zip(*[self.uav_trajectories[f'uav{i}_true_pos'] for i in range(1, total_uav_num+1)])):
                 row = [t] + [pos[0] for pos in positions] + [pos[1] for pos in positions]
                 writer.writerow(row)
         print(f"Data successfully saved to {filename}")

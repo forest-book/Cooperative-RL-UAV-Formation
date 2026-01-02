@@ -311,7 +311,8 @@ class MainController:
             self.show_simulation_progress(loop=loop)
 
         # ロギングした推定誤差をcsv出力
-        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
+        total_uav_num = len(self.uavs)
+        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv(total_uav_num)
         error_filename = self.data_logger.save_fused_RL_errors_to_csv()
         return
         # グラフ生成
