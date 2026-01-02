@@ -113,6 +113,15 @@ class MainController:
         estimation_error_distance = np.linalg.norm(estimation_error)
         return estimation_error_distance
 
+    def calc_inter_uav_distance(self, uav_i_id: int, uav_j_id: int) -> float:
+        # 真の相対位置
+        target_uav = self.get_uav_by_id(uav_j_id)
+        uav_i = self.get_uav_by_id(uav_i_id)
+        true_rel_pos = target_uav.true_position - uav_i.true_position
+        # ノルムをとって距離に直す
+        inter_uav_distance = np.linalg.norm(true_rel_pos)
+        return inter_uav_distance
+
     def build_measurements_cache(self) -> dict:
         """全UAVペア間の測定値を事前計算してキャッシュする"""
         measurements_cache = {}
@@ -303,21 +312,25 @@ class MainController:
             for uav in self.uavs:
                 uav.update_state(dt=self.dt)
 
-            # 重複のないペアだけ推定誤差をロギング
+            # 重複のないペアだけ推定誤差と機体間距離をロギング
             for uav_i_id, uav_j_id in self.iter_unique_uav_pairs():
                 error_distance = self.calc_RL_estimation_error(uav_i_id, uav_j_id, loop+1)
                 self.data_logger.logging_fused_RL_error_pair((uav_i_id, uav_j_id), error_distance)
 
+                inter_uav_distance = self.calc_inter_uav_distance(uav_i_id, uav_j_id)
+                self.data_logger.logging_inter_uav_distance_pair((uav_i_id, uav_j_id), inter_uav_distance)
             self.show_simulation_progress(loop=loop)
 
         # ロギングした推定誤差をcsv出力
         total_uav_num = len(self.uavs)
         trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv(total_uav_num)
         error_filename = self.data_logger.save_fused_RL_errors_to_csv()
+        inter_dist_filename = self.data_logger.save_inter_uav_distance_to_csv()
 
         # グラフ生成
         Plotter.plot_UAV_trajectories_from_csv(trajectory_filename, total_uav_num)
         Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        Plotter.plot_inter_uav_distance_from_csv(inter_dist_filename)
         return
         # 統計情報の表示と保存
         #self.data_logger.print_fused_RL_error_statistics(total_uav_num=len(self.uavs))

@@ -14,6 +14,7 @@ class DataLogger:
         self.timestamp: List[float] = []
         self.uav_trajectories: Dict[str, List[np.ndarray]] = defaultdict(list)
         self.fused_RL_errors_pair: Dict[str, List[float]] = defaultdict(list)
+        self.inter_uav_distance_pair: Dict[str, List[float]] = defaultdict(list)
         self._creation_time = datetime.datetime.now()  # インスタンス生成時の時刻
 
     def logging_timestamp(self, time: float):
@@ -26,6 +27,11 @@ class DataLogger:
         """重複のないUAVペア (i<j) の推定誤差をロギング"""
         i, j = sorted(pair)
         self.fused_RL_errors_pair[f"uav{i}_{j}_fused_error"].append(error)
+
+    def logging_inter_uav_distance_pair(self, pair: Tuple[int, int], distance: float):
+        """重複のないUAVペア (i<j) の機体間距離をロギング"""
+        i, j = sorted(pair)
+        self.inter_uav_distance_pair[f"dist_{i}_{j}"].append(distance)
 
     def calc_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0) -> Dict[int, Dict[str, float]]:
         """
@@ -214,13 +220,36 @@ class DataLogger:
         with open(dir_path, mode='w', newline='') as file:
             writer = csv.writer(file)
             if self.fused_RL_errors_pair:
-                # ペア単位でのログが存在する場合はこちらを優先
                 headers = ['time'] + sorted(self.fused_RL_errors_pair.keys())
                 writer.writerow(headers)
 
                 error_series = [self.fused_RL_errors_pair[key] for key in headers[1:]]
                 for t, errors in zip(self.timestamp, zip(*error_series)):
                     row = [t] + list(errors)
+                    writer.writerow(row)
+        print(f"Data successfully saved to {filename}")
+        return filename
+
+    def save_inter_uav_distance_to_csv(self, filename: Optional[str] = None):
+        """
+        UAVの機体間距離をcsv保存する関数
+
+        Args:
+            filename (Optional[str]): 保存するCSVファイル名（Noneの場合は自動生成）
+        """
+        if filename is None:
+            filename = f'inter_uav_distance_{self._creation_time.strftime(r"%Y-%m-%d-%H-%M-%S")}.csv'
+
+        dir_path = "../data/csv/inter_uav_dist/" + filename
+        with open(dir_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            if self.inter_uav_distance_pair:
+                headers = ['time'] + sorted(self.inter_uav_distance_pair.keys())
+                writer.writerow(headers)
+
+                dist_series = [self.inter_uav_distance_pair[key] for key in headers[1:]]
+                for t, dist in zip(self.timestamp, zip(*dist_series)):
+                    row = [t] + list(dist)
                     writer.writerow(row)
         print(f"Data successfully saved to {filename}")
         return filename
