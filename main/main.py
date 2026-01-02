@@ -277,9 +277,9 @@ class MainController:
         """メインループの実行"""
         self.initialize()
 
-        #for loop in range(self.loop_amount):
-        for loop in range(25):
-            print(f"{loop}ステップ目")
+        for loop in range(self.loop_amount):
+        #for loop in range(25):
+            #print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
 
