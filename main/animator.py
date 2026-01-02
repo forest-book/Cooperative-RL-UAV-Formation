@@ -114,7 +114,7 @@ class FormationAnimator:
         show: bool = True,
         frame_step: int = 1,
         dpi: int = 120,
-        speed_multiplier: float = 4.0,
+        speed_multiplier: float = 1.0,
     ):
         total_frames = len(self.times)
         if total_frames == 0:
