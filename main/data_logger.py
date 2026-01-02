@@ -1,7 +1,7 @@
 import csv
 import json
 import numpy as np
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from collections import defaultdict
 import datetime
 
@@ -13,7 +13,7 @@ class DataLogger:
     def __init__(self):
         self.timestamp: List[float] = []
         self.uav_trajectories: Dict[str, List[np.ndarray]] = defaultdict(list)
-        self.fused_RL_errors: Dict[str, List[float]] = defaultdict(list)
+        self.fused_RL_errors_pair: Dict[str, List[float]] = defaultdict(list)
         self._creation_time = datetime.datetime.now()  # インスタンス生成時の時刻
 
     def logging_timestamp(self, time: float):
@@ -22,19 +22,22 @@ class DataLogger:
     def logging_uav_trajectories(self, uav_id: int, uav_position: np.ndarray):
         self.uav_trajectories[f"uav{uav_id}_true_pos"].append(uav_position.copy())
 
-    def logging_fused_RL_error(self, uav_id: int, error: float):
-        self.fused_RL_errors[f"uav{uav_id}_fused_error"].append(error)
+    def logging_fused_RL_error_pair(self, pair: Tuple[int, int], error: float):
+        """重複のないUAVペア (i<j) の推定誤差をロギング"""
+        i, j = sorted(pair)
+        self.fused_RL_errors_pair[f"uav{i}_{j}_fused_error"].append(error)
 
-    def calc_fused_RL_error_statistics(self, transient_time: float = 10.0) -> Dict[int, Dict[str, float]]:
+    def calc_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0) -> Dict[int, Dict[str, float]]:
         """
         各UAVの融合推定誤差の平均と分散を計算する関数
 
         Args:
             transient_time (float): 過渡状態として除外する時間 [秒]（デフォルト: 10秒）
+            total_uav_num (int): UAVの全機体数
 
         Returns:
             Dict[int, Dict[str, float]]: UAV IDをキーとし、'mean'と'variance'を含む辞書
-                例: {2: {'mean': 0.123, 'variance': 0.456}, 3: {...}, ...}
+                例: {1: {'mean': 0.123, 'variance': 0.456}, 2: {...}, ...}
         """
         statistics = {}
 
@@ -45,8 +48,8 @@ class DataLogger:
         else:
             transient_steps = 0
 
-        # UAV 2~6 の誤差について統計を計算
-        for uav_id in range(2, 7):
+        # UAVの推定誤差について統計を計算
+        for uav_id in range(total_uav_num):
             key = f"uav{uav_id}_fused_error"
             if key in self.fused_RL_errors:
                 errors = self.fused_RL_errors[key]
@@ -73,14 +76,15 @@ class DataLogger:
 
         return statistics
 
-    def print_fused_RL_error_statistics(self, transient_time: float = 10.0):
+    def print_fused_RL_error_statistics(self, total_uav_num: int, transient_time: float = 10.0):
         """
         融合推定誤差の統計情報をコンソールに表示する関数
 
         Args:
             transient_time (float): 過渡状態として除外する時間 [秒]
+            total_uav_num (int): UAVの全機体数
         """
-        statistics = self.calc_fused_RL_error_statistics(transient_time)
+        statistics = self.calc_fused_RL_error_statistics(total_uav_num, transient_time)
 
         print("\n" + "="*70)
         print(f"  融合RL推定誤差の統計 ({transient_time}秒後から安定状態)")
@@ -88,7 +92,7 @@ class DataLogger:
         print(f"{'UAV Pair':<10} | {'Mean Error (m)':<18} | {'Variance':<15} | {'Std Dev (m)':<15}")
         print("-" * 70)
 
-        for uav_id in range(2, 7):
+        for uav_id in range(total_uav_num):
             if uav_id in statistics:
                 stats = statistics[uav_id]
                 if stats['mean'] is not None:
@@ -171,11 +175,12 @@ class DataLogger:
         print(f"Statistics successfully saved to {dir_path}")
         return dir_path
 
-    def save_UAV_trajectories_data_to_csv(self, filename: Optional[str] = None):
+    def save_UAV_trajectories_data_to_csv(self, total_uav_num: int, filename: Optional[str] = None):
         """
         複数のUAVの軌道(2D)をcsv保存する関数
 
         Args:
+            total_uav_num (int): UAVの全機体数
             filename (Optional[str]): 保存するCSVファイル名（Noneの場合は自動生成）
         """
         if filename is None:
@@ -185,11 +190,11 @@ class DataLogger:
         with open(dir_path, mode='w', newline='') as file:
             writer = csv.writer(file)
             # Write headers
-            headers = ['time'] + [f'uav{i}_true_pos_x' for i in range(1, 7)] + [f'uav{i}_true_pos_y' for i in range(1, 7)]
+            headers = ['time'] + [f'uav{i}_true_pos_x' for i in range(1, total_uav_num+1)] + [f'uav{i}_true_pos_y' for i in range(1, total_uav_num+1)]
             writer.writerow(headers)
 
             # Write data
-            for t, positions in zip(self.timestamp, zip(*[self.uav_trajectories[f'uav{i}_true_pos'] for i in range(1, 7)])):
+            for t, positions in zip(self.timestamp, zip(*[self.uav_trajectories[f'uav{i}_true_pos'] for i in range(1, total_uav_num+1)])):
                 row = [t] + [pos[0] for pos in positions] + [pos[1] for pos in positions]
                 writer.writerow(row)
         print(f"Data successfully saved to {filename}")
@@ -208,14 +213,15 @@ class DataLogger:
         dir_path = "../data/csv/RL_errors/" + filename
         with open(dir_path, mode='w', newline='') as file:
             writer = csv.writer(file)
-            # Write headers
-            headers = ['time'] + [f'uav{i}_fused_error' for i in range(2, 7)]
-            writer.writerow(headers)
+            if self.fused_RL_errors_pair:
+                # ペア単位でのログが存在する場合はこちらを優先
+                headers = ['time'] + sorted(self.fused_RL_errors_pair.keys())
+                writer.writerow(headers)
 
-            # Write data
-            for t, errors in zip(self.timestamp, zip(*[self.fused_RL_errors[f'uav{i}_fused_error'] for i in range(2, 7)])):
-                row = [t] + list(errors)
-                writer.writerow(row)
+                error_series = [self.fused_RL_errors_pair[key] for key in headers[1:]]
+                for t, errors in zip(self.timestamp, zip(*error_series)):
+                    row = [t] + list(errors)
+                    writer.writerow(row)
         print(f"Data successfully saved to {filename}")
         return filename
 

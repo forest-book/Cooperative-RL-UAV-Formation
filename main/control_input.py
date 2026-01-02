@@ -50,7 +50,7 @@ class ControlInput:
         for v_ij in rel_v_ij_i_k:
             rel_velocity_sum += v_ij
         velocity_consensus_term = gamma1 * T * rel_velocity_sum
-        print(f"速度合意項: {velocity_consensus_term}")
+        #print(f"速度合意項: {velocity_consensus_term}")
 
         # 第3項: フォーメーション制御項
         # gamma_2 * T * Σ (d_{k}^{ij}^2 - d_{ij}^{*2}) * pi_{i,k}^{ij}
@@ -65,7 +65,7 @@ class ControlInput:
             # ベクトルへの重み付け加算
             rl_correction_sum += dist_error_scalar * pi_ij
         formation_control_term = gamma2 * T * rl_correction_sum
-        print(f"フォーメーション制御項: {formation_control_term}")
+        #print(f"フォーメーション制御項: {formation_control_term}")
         vel_i_k_plus_1 = vel_i_k + velocity_consensus_term + formation_control_term
-        print(f"次ステップの制御入力(速度): {vel_i_k_plus_1}")
+        #print(f"次ステップの制御入力(速度): {vel_i_k_plus_1}")
         return vel_i_k_plus_1

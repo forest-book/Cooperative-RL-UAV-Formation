@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List
+from typing import List, Tuple
 
 from quadcopter import UAV
 from estimator import Estimator
@@ -159,6 +159,15 @@ class MainController:
             fused_RLs.append(uav.fused_estimates[key][loop].copy())
         return fused_RLs
 
+    def iter_unique_uav_pairs(self) -> List[Tuple[int, int]]:
+        """(i, j) 形式で i<j の重複しないUAVペア一覧を返す"""
+        ids = sorted([uav.id for uav in self.uavs])
+        pairs: List[Tuple[int, int]] = []
+        for idx, uav_id in enumerate(ids):
+            for other_id in ids[idx + 1:]:
+                pairs.append((uav_id, other_id))
+        return pairs
+
     def exec_direct_estimation(self, measurements_cache: dict, loop: int) -> None:
         """直接推定の1ステップを実行する"""
         for uav_i in self.uavs:
@@ -256,7 +265,7 @@ class MainController:
                 gamma1=self.params['GAMMA1'],
                 gamma2=self.params['GAMMA2']
             )
-            print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
+            #print(f"uav_{uav_i.id}の制御入力: {next_velocity}")
             uav_i.control_input = next_velocity
         return
 
@@ -268,9 +277,9 @@ class MainController:
         """メインループの実行"""
         self.initialize()
 
-        #for loop in range(self.loop_amount):
-        for loop in range(5):
-            print(f"{loop}ステップ目")
+        for loop in range(self.loop_amount):
+        #for loop in range(25):
+            #print(f"{loop}ステップ目")
             # 各ループの開始時に全UAVペア間のノイズ付き測定値を事前計算してキャッシュ
             measurements_cache = self.build_measurements_cache()
 
@@ -293,29 +302,27 @@ class MainController:
             # 全UAVの真の状態を k+1 に更新
             for uav in self.uavs:
                 uav.update_state(dt=self.dt)
-            #return
-        #     for uav in self.uavs:
-        #         if uav.id == self.params['TARGET_ID']:
-        #             continue
-        #         # k+1時点での推定誤差を計算
-        #         error_distance = self.calc_RL_estimation_error(uav.id, self.params['TARGET_ID'], loop+1)
-        #         # 推定誤差をロギング
-        #         self.data_logger.logging_fused_RL_error(uav_id=uav.id, error=error_distance)
 
-        #     self.show_simulation_progress(loop=loop)
+            # 重複のないペアだけ推定誤差をロギング
+            for uav_i_id, uav_j_id in self.iter_unique_uav_pairs():
+                error_distance = self.calc_RL_estimation_error(uav_i_id, uav_j_id, loop+1)
+                self.data_logger.logging_fused_RL_error_pair((uav_i_id, uav_j_id), error_distance)
 
-        # # ロギングした推定誤差をcsv出力
-        # trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv()
-        # error_filename = self.data_logger.save_fused_RL_errors_to_csv()
+            self.show_simulation_progress(loop=loop)
 
-        # # グラフ生成
-        # Plotter.plot_UAV_trajectories_from_csv(trajectory_filename)
-        # Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        # ロギングした推定誤差をcsv出力
+        total_uav_num = len(self.uavs)
+        trajectory_filename = self.data_logger.save_UAV_trajectories_data_to_csv(total_uav_num)
+        error_filename = self.data_logger.save_fused_RL_errors_to_csv()
 
-        # # 統計情報の表示と保存
-        # self.data_logger.print_fused_RL_error_statistics(transient_time=120.0)
-        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
-        # self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
+        # グラフ生成
+        Plotter.plot_UAV_trajectories_from_csv(trajectory_filename, total_uav_num)
+        Plotter.plot_fused_RL_errors_from_csv(error_filename)
+        return
+        # 統計情報の表示と保存
+        #self.data_logger.print_fused_RL_error_statistics(total_uav_num=len(self.uavs))
+        #self.data_logger.save_fused_RL_error_statistics(transient_time=120.0)
+        #self.data_logger.save_fused_RL_error_statistics(transient_time=120.0, format='txt')
 
 if __name__ == '__main__':
     # 設定ファイルから読み込む
