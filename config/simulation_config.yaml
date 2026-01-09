@@ -35,3 +35,8 @@ NOISE:
   delta_bar: 0.5   # 速度ノイズ幅 [m/s]
   dist_bound: 0.05 # 距離ノイズ幅 [m]
   initialization_bound: 0  # 初期推定ノイズ幅 [m]
+
+# フィルタ設定
+FILTER:
+  enabled: true   # フィルタの有効/無効
+  alpha: 0.15      # EMA係数（0.1~0.3推奨，小さいほど平滑化が強い）

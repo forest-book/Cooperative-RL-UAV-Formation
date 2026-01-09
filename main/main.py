@@ -8,6 +8,7 @@ from plotter import Plotter
 from config_loader import ConfigLoader
 from interface_sensor import ISensor
 from control_input import ControlInput
+from measurement_filter import MeasurementFilter
 
 class MainController:
     """アプリケーション全体を管理し，メインループを実行する"""
@@ -21,6 +22,10 @@ class MainController:
         self.data_logger = DataLogger()
         self.controller = ControlInput()
         self.sensor = sensor
+
+        # 測定値フィルタ（指数移動平均フィルタ）
+        filter_alpha = params.get('FILTER', {}).get('alpha', 0.2)
+        self.measurement_filter = MeasurementFilter(alpha=filter_alpha)
 
     def get_uav_by_id(self, uav_id: int) -> UAV:
         """UAV IDからUAVオブジェクトを取得するヘルパーメソッド"""
@@ -139,15 +144,23 @@ class MainController:
         measurements_cache = {}
         delta_bar = self.params['NOISE']['delta_bar']
         dist_bound = self.params['NOISE']['dist_bound']
+        use_filter = self.params.get('FILTER', {}).get('enabled', False)
         for uav_i in self.uavs:
             for uav_j in self.uavs:
                 if uav_i.id == uav_j.id:
                     continue
                 key = (uav_i.id, uav_j.id)
-                noisy_v = self.sensor.get_velocity_info(uav_i=uav_i, uav_j=uav_j, delta_bar=delta_bar, add_vel_noise=False)
-                noisy_d = self.sensor.get_distance_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_noise=False)
-                noisy_d_dot = self.sensor.get_distance_rate_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_rate_noise=False)
-                measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
+                noisy_v = self.sensor.get_velocity_info(uav_i=uav_i, uav_j=uav_j, delta_bar=delta_bar, add_vel_noise=True)
+                noisy_d = self.sensor.get_distance_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_noise=True)
+                noisy_d_dot = self.sensor.get_distance_rate_info(uav_i=uav_i, uav_j=uav_j, dist_bound=dist_bound, add_dist_rate_noise=True)
+
+                # 測定値フィルタを適用(有効な場合)
+                if use_filter:
+                    filtered_v, filtered_d, filtered_d_dot = self.measurement_filter.apply(
+                        key=key, measured_v=noisy_v, measured_d=noisy_d, measured_d_dot=noisy_d_dot)
+                    measurements_cache[key] = (filtered_v, filtered_d, filtered_d_dot)
+                else:
+                    measurements_cache[key] = (noisy_v, noisy_d, noisy_d_dot)
         return measurements_cache
 
     def get_neighbor_relative_velocities(self, uav: UAV, measurements_cache: dict) -> List[np.ndarray]:
