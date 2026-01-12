@@ -69,3 +69,27 @@ class ControlInput:
         vel_i_k_plus_1 = vel_i_k + velocity_consensus_term + formation_control_term
         #print(f"次ステップの制御入力(速度): {vel_i_k_plus_1}")
         return vel_i_k_plus_1
+    
+    @staticmethod
+    def calc_adaptive_gamma2_sigmoid(
+        dist_error_sq: float,
+        gamma2_min: float,
+        gamma2_max: float,
+        steepness: float = 0.05,
+        error_center: float = 100.0
+    ) -> float:
+        """
+        シグモイド関数で距離誤差をgamma2に写像
+
+        誤差が大きい → gamma2_min（抑制）
+        誤差が小さい → gamma2_max（加速） 
+        """
+        abs_error = abs(dist_error_sq)
+
+        # シグモイド関数: 誤差が小さいほど1に近づく
+        sigmoid = 1.0 / (1.0 + np.exp(-steepness * (error_center - abs_error)))
+
+        # [gamma2_min, gamma2_max] に線形写像
+        gamma2 = gamma2_min + (gamma2_max - gamma2_min) * sigmoid
+
+        return gamma2

@@ -284,7 +284,17 @@ class MainController:
             rel_velocities: List[np.ndarray] = self.get_neighbor_relative_velocities(uav_i, measurements_cache)
             rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
             desired_distance = self.params['DIST']
+            desired_distance = [self.params['DIST'], self.params['DIST']]
             fused_RLs: List[np.ndarray] = self.get_neighbor_fused_RLs(uav_i, loop)
+            # 全隣接機の最大誤差で1つのgamma2を決定
+            max_error = max(abs((d**2) - (d_star**2)) for d, d_star in zip(rel_distances, desired_distance))
+            gamma2_adaptive = self.controller.calc_adaptive_gamma2_sigmoid(
+                dist_error_sq=max_error,
+                gamma2_min=self.params['ADAPTIVE_GAMMA2']['gamma2_min'],
+                gamma2_max=self.params['ADAPTIVE_GAMMA2']['gamma2_max'],
+                steepness=self.params['ADAPTIVE_GAMMA2']['steepness'],
+                error_center=self.params['ADAPTIVE_GAMMA2']['error_center']
+            )
             next_velocity = self.controller.calc_RL_based_control_input(
                 vel_i_k=uav_i.true_velocity,
                 rel_v_ij_i_k=rel_velocities,
@@ -293,7 +303,7 @@ class MainController:
                 pi_ij_i_k=fused_RLs,
                 T=self.dt,
                 gamma1=self.params['GAMMA1'],
-                gamma2=self.params['GAMMA2']
+                gamma2=gamma2_adaptive
             )
             uav_i.control_input = next_velocity
         return
