@@ -69,15 +69,15 @@ class ControlInput:
             dist_error_scalar = (d_ij ** 2) - (d_star ** 2)
             # ベクトルへの重み付け加算
             rl_correction_sum += dist_error_scalar * pi_ij
-        # 全隣接機の最大誤差で1つのgamma2を決定
-        max_error = max(abs((d**2) - (d_star**2)) for d, d_star in zip(rel_distances, desired_dists_list))
-        gamma2_adaptive = self.calc_adaptive_gamma2_sigmoid(
-            dist_error_sq=max_error,
-            gamma2_min=gamma2_min,
-            gamma2_max=gamma2_max,
-            steepness=steepness,
-            error_center=error_center)
         if is_adaptive:
+            # 全隣接機の最大誤差で1つのgamma2を決定
+            max_error = max(abs((d**2) - (d_star**2)) for d, d_star in zip(rel_distances, desired_dists_list))
+            gamma2_adaptive = self.calc_adaptive_gamma2_sigmoid(
+                dist_error_sq=max_error,
+                gamma2_min=gamma2_min,
+                gamma2_max=gamma2_max,
+                steepness=steepness,
+                error_center=error_center)
             gamma2 = gamma2_adaptive
         formation_control_term = gamma2 * T * rl_correction_sum
         #print(f"フォーメーション制御項: {formation_control_term}")
