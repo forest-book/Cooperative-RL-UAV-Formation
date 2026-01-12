@@ -9,7 +9,12 @@ class MeasurementFilter:
         Args:
             alpha (float): フィルタの平滑化係数 (0 < alpha < 1)
                            小さいほど平滑化が強くなる（ノイズ除去効果↑、応答速度↓）
+        
+        Raises:
+            ValueError: alpha が範囲外 (0 < alpha < 1) の場合
         """
+        if not (0 < alpha < 1):
+            raise ValueError(f"alpha must be in range (0, 1), got {alpha}")
         self.alpha: float = alpha
         # 各UAVペアの前回フィルタ値を保持: {(i,j): (filtered_v, filtered_d, filtered_d_dot)}
         self.prev_filtered_values: Dict[Tuple[int, int], Tuple[np.ndarray, float, float]] = {}
