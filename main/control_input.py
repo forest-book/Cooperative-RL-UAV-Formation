@@ -5,8 +5,8 @@ class ControlInput:
     """
     UAVへの制御入力を担うクラス
     """
-    @staticmethod
     def calc_RL_based_control_input(
+            self,
             vel_i_k: np.ndarray,
             rel_v_ij_i_k: List[np.ndarray],
             rel_distances: List[float],
@@ -15,6 +15,11 @@ class ControlInput:
             T: float,
             gamma1: float,
             gamma2: float,
+            gamma2_min: float,
+            gamma2_max: float,
+            steepness: float = 0.05,
+            error_center: float = 100.0,
+            is_adaptive: bool = False
         ) -> np.ndarray:
         """
         式(9)に基づくフォーメーション制御入力の計算
@@ -64,14 +69,24 @@ class ControlInput:
             dist_error_scalar = (d_ij ** 2) - (d_star ** 2)
             # ベクトルへの重み付け加算
             rl_correction_sum += dist_error_scalar * pi_ij
+        # 全隣接機の最大誤差で1つのgamma2を決定
+        max_error = max(abs((d**2) - (d_star**2)) for d, d_star in zip(rel_distances, desired_dists_list))
+        gamma2_adaptive = self.calc_adaptive_gamma2_sigmoid(
+            dist_error_sq=max_error,
+            gamma2_min=gamma2_min,
+            gamma2_max=gamma2_max,
+            steepness=steepness,
+            error_center=error_center)
+        if is_adaptive:
+            gamma2 = gamma2_adaptive
         formation_control_term = gamma2 * T * rl_correction_sum
         #print(f"フォーメーション制御項: {formation_control_term}")
         vel_i_k_plus_1 = vel_i_k + velocity_consensus_term + formation_control_term
         #print(f"次ステップの制御入力(速度): {vel_i_k_plus_1}")
         return vel_i_k_plus_1
     
-    @staticmethod
     def calc_adaptive_gamma2_sigmoid(
+        self,
         dist_error_sq: float,
         gamma2_min: float,
         gamma2_max: float,
