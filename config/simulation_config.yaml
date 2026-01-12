@@ -40,3 +40,11 @@ NOISE:
 FILTER:
   enabled: true   # フィルタの有効/無効
   alpha: 0.15      # EMA係数（0.1~0.3推奨，小さいほど平滑化が強い）
+
+# アダプティブゲイン設定
+ADAPTIVE_GAMMA2:
+  enabled: true
+  gamma2_min: 0.00014       # 最小ゲイン（遠距離時）
+  gamma2_max: 0.0014           # 最大ゲイン（収束時）
+  steepness: 0.01             # 遷移の急峻さ
+  error_center: 50.0         # 遷移中心点（d²単位）

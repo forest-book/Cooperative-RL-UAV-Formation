@@ -293,7 +293,12 @@ class MainController:
                 pi_ij_i_k=fused_RLs,
                 T=self.dt,
                 gamma1=self.params['GAMMA1'],
-                gamma2=self.params['GAMMA2']
+                gamma2=self.params['GAMMA2'],
+                gamma2_min=self.params['ADAPTIVE_GAMMA2']['gamma2_min'],
+                gamma2_max=self.params['ADAPTIVE_GAMMA2']['gamma2_max'],
+                steepness=self.params['ADAPTIVE_GAMMA2']['steepness'],
+                error_center=self.params['ADAPTIVE_GAMMA2']['error_center'],
+                is_adaptive=self.params['ADAPTIVE_GAMMA2']['enabled']
             )
             uav_i.control_input = next_velocity
         return
