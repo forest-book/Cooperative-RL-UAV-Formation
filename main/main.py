@@ -383,7 +383,8 @@ if __name__ == '__main__':
     from sensor_sim_mock import MockSensor
     from sensor_sim_coppelia import CoppeliaSensor
     # YAML形式
-    simulation_params = ConfigLoader.load('../config/config_diff_dist.yaml')
+    #simulation_params = ConfigLoader.load('../config/config_diff_dist.yaml')
+    simulation_params = ConfigLoader.load('../config/config_uav4.yaml')
 
     controller = MainController(simulation_params, sensor=MockSensor())
     controller.run()
