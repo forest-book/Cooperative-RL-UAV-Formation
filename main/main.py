@@ -280,16 +280,17 @@ class MainController:
 
     def apply_control_input(self, measurements_cache, loop):
         """次のステップの制御入力（速度）を算出し適用する"""
+        desired_distances: dict = self.params['DIST']
         for uav_i in self.uavs:
             rel_velocities: List[np.ndarray] = self.get_neighbor_relative_velocities(uav_i, measurements_cache)
             rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
-            desired_distance = self.params['DIST']
+            distance = desired_distances.get(uav_i.id, [15, 15])  # 各UAVの隣接機との望ましい距離
             fused_RLs: List[np.ndarray] = self.get_neighbor_fused_RLs(uav_i, loop)
             next_velocity = self.controller.calc_RL_based_control_input(
                 vel_i_k=uav_i.true_velocity,
                 rel_v_ij_i_k=rel_velocities,
                 rel_distances=rel_distances,
-                desired_distances=desired_distance,
+                desired_distances=distance,
                 pi_ij_i_k=fused_RLs,
                 T=self.dt,
                 gamma1=self.params['GAMMA1'],
@@ -382,7 +383,7 @@ if __name__ == '__main__':
     from sensor_sim_mock import MockSensor
     from sensor_sim_coppelia import CoppeliaSensor
     # YAML形式
-    simulation_params = ConfigLoader.load('../config/simulation_config.yaml')
+    simulation_params = ConfigLoader.load('../config/config_diff_dist.yaml')
 
     controller = MainController(simulation_params, sensor=MockSensor())
     controller.run()
