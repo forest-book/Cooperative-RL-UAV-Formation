@@ -278,9 +278,47 @@ class MainController:
 
                 uav_i.fused_estimates[fused_key].append(next_fused.copy())
 
+    def get_desired_distance(self, current_time: float) -> dict:
+        """現在時刻に基づいて適切なフェーズの目標距離設定を返す
+        Args:
+            current_time: 現在のシミュレーション時刻 [s]
+        Returns:
+            dict: UAV IDをキーとした目標距離の辞書
+        """
+        dict_config: dict = self.params['DIST']
+
+        # PHASEキーが存在するか確認 (後方互換性)
+        phase_keys = [key for key in dict_config.keys() if key.startswith('PHASE')]
+        if not phase_keys:
+            # 従来形式：PHASE無しの場合はそのまま返す
+            return dict_config
+
+        # PHASEを時刻順にソート
+        phases = []
+        for phase_key in sorted(phase_keys):
+            phase_data: dict = dict_config[phase_key]
+            start_time = phase_data.get('start_time', 0)
+            # start_time以外のキー (UAV ID) を距離設定として抽出
+            distances = {key: value for key, value in phase_data.items() if key != 'start_time'}
+            phases.append((start_time, distances))
+
+        # 時刻順にソート
+        phases.sort(key=lambda x: x[0])
+
+        # 現在時刻に該当するフェーズを選択
+        selected_distances = phases[0][1]
+        for start_time, distances in phases:
+            if current_time >= start_time:
+                selected_distances = distances
+            else:
+                break
+
+        return selected_distances
+
     def apply_control_input(self, measurements_cache, loop):
         """次のステップの制御入力（速度）を算出し適用する"""
-        desired_distances: dict = self.params['DIST']
+        current_time = loop * self.dt
+        desired_distances: dict = self.get_desired_distance(current_time)
         for uav_i in self.uavs:
             rel_velocities: List[np.ndarray] = self.get_neighbor_relative_velocities(uav_i, measurements_cache)
             rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
@@ -383,8 +421,8 @@ if __name__ == '__main__':
     from sensor_sim_mock import MockSensor
     from sensor_sim_coppelia import CoppeliaSensor
     # YAML形式
-    #simulation_params = ConfigLoader.load('../config/config_diff_dist.yaml')
-    simulation_params = ConfigLoader.load('../config/config_uav4.yaml')
+    simulation_params = ConfigLoader.load('../config/config_dist_change.yaml')
+    #simulation_params = ConfigLoader.load('../config/config_uav4.yaml')
 
     controller = MainController(simulation_params, sensor=MockSensor())
     controller.run()

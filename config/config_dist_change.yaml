@@ -1,0 +1,60 @@
+# シミュレーション設定ファイル
+
+# シミュレーション時間設定
+DURATION: 300  # シミュレーション時間 [秒]
+T: 0.02        # サンプリング周期 [秒]
+
+# 推定アルゴリズム設定
+GAMMA: 0.06    # ゲイン γ
+
+# 制御入力設定
+GAMMA1: 1.0    # ゲイン γ1
+GAMMA2: 0.00014  # ゲイン γ2
+DIST:
+  PHASE1:       # UAV間距離[m]
+    start_time: 0
+    1:  [15, 15]
+    2:  [15, 15]
+    3:  [15, 15]
+  PHASE2:
+    start_time: 150
+    1:  [30, 30]
+    2:  [30, 30]
+    3:  [30, 30]
+
+# UAV初期位置 [x, y] (m)
+INITIAL_POSITIONS:
+  1: [-20, -20]
+  2: [ 10, -10]
+  3: [ 20,  20]
+
+# UAV初期速度 [x, y] (m/s)
+INITIAL_VELOCITIES:
+  1: [0, 0]
+  2: [-1, 1]
+  3: [0, 0]
+
+# 隣接関係設定
+NEIGHBORS:
+  1: [2, 3]         # UAV1の隣接機
+  2: [1, 3]         # UAV2の隣接機
+  3: [1, 2]         # UAV3の隣接機
+
+# ノイズパラメータ
+NOISE:
+  delta_bar: 0.5   # 速度ノイズ幅 [m/s]
+  dist_bound: 0.05 # 距離ノイズ幅 [m]
+  initialization_bound: 0  # 初期推定ノイズ幅 [m]
+
+# フィルタ設定
+FILTER:
+  enabled: true   # フィルタの有効/無効
+  alpha: 0.15      # EMA係数（0.1~0.3推奨，小さいほど平滑化が強い）
+
+# アダプティブゲイン設定
+ADAPTIVE_GAMMA2:
+  enabled: true
+  gamma2_min: 0.00014       # 最小ゲイン（遠距離時）
+  gamma2_max: 0.0014           # 最大ゲイン（収束時）
+  steepness: 0.01             # 遷移の急峻さ
+  error_center: 50.0         # 遷移中心点（d²単位）
