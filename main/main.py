@@ -319,7 +319,6 @@ class MainController:
         """次のステップの制御入力（速度）を算出し適用する"""
         current_time = loop * self.dt
         desired_distances: dict = self.get_desired_distance(current_time)
-        #desired_distances: dict = self.params['DIST']
         for uav_i in self.uavs:
             rel_velocities: List[np.ndarray] = self.get_neighbor_relative_velocities(uav_i, measurements_cache)
             rel_distances: List[float] = self.get_neighbor_relative_distances(uav_i, measurements_cache)
