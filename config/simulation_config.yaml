@@ -10,7 +10,10 @@ GAMMA: 0.06    # ゲイン γ
 # 制御入力設定
 GAMMA1: 1.0    # ゲイン γ1
 GAMMA2: 0.00014  # ゲイン γ2
-DIST: 15       # UAV間距離[m]
+DIST:       # UAV間距離[m]
+  1:  [15, 15]
+  2:  [15, 15]
+  3:  [15, 15]
 
 # UAV初期位置 [x, y] (m)
 INITIAL_POSITIONS:
