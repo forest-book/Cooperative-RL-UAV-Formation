@@ -288,7 +288,7 @@ class MainController:
         dict_config: dict = self.params['DIST']
 
         # PHASEキーが存在するか確認 (後方互換性)
-        phase_keys = [key for key in dict_config.keys() if key.startswith('PHASE')]
+        phase_keys = [key for key in str(dict_config.keys()) if key.startswith('PHASE')]
         if not phase_keys:
             # 従来形式：PHASE無しの場合はそのまま返す
             return dict_config
@@ -421,8 +421,8 @@ if __name__ == '__main__':
     from sensor_sim_mock import MockSensor
     from sensor_sim_coppelia import CoppeliaSensor
     # YAML形式
-    simulation_params = ConfigLoader.load('../config/config_dist_change.yaml')
-    #simulation_params = ConfigLoader.load('../config/config_uav4.yaml')
+    #simulation_params = ConfigLoader.load('../config/config_dist_change.yaml')
+    simulation_params = ConfigLoader.load('../config/config_uav5.yaml')
 
     controller = MainController(simulation_params, sensor=MockSensor())
     controller.run()
