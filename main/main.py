@@ -288,7 +288,7 @@ class MainController:
         dict_config: dict = self.params['DIST']
 
         # PHASEキーが存在するか確認 (後方互換性)
-        phase_keys = [key for key in str(dict_config.keys()) if key.startswith('PHASE')]
+        phase_keys = [key for key in dict_config.keys() if str(key).startswith('PHASE')]
         if not phase_keys:
             # 従来形式：PHASE無しの場合はそのまま返す
             return dict_config

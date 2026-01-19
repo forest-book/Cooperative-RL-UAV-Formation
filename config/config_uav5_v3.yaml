@@ -37,8 +37,8 @@ INITIAL_POSITIONS:
 # UAV初期速度 [x, y] (m/s)
 INITIAL_VELOCITIES:
   1: [0, 0]
-  2: [-2, 2]
-  3: [0, 0]
+  2: [-1, 1]
+  3: [-1, 1]
   4: [0, 0]
   5: [0, 0]
 
