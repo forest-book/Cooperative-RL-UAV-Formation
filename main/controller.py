@@ -5,7 +5,6 @@ from quadcopter import UAV
 from estimator import Estimator
 from data_logger import DataLogger
 from plotter import Plotter
-from config_loader import ConfigLoader
 from interface_sensor import ISensor
 from control_input import ControlInput
 from measurement_filter import MeasurementFilter
