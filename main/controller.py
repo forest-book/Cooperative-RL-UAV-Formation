@@ -413,16 +413,3 @@ class MainController:
             interval_ms=50,      # frame interval (ms)
         )
         anim.animate(save=True, show=True, frame_step=30, speed_multiplier=16.0)
-
-if __name__ == '__main__':
-    # 設定ファイルから読み込む
-    # JSON形式
-    #simulation_params = ConfigLoader.load('../config/simulation_config.json')
-    from sensor_sim_mock import MockSensor
-    from sensor_sim_coppelia import CoppeliaSensor
-    # YAML形式
-    #simulation_params = ConfigLoader.load('../config/config_dist_change.yaml')
-    simulation_params = ConfigLoader.load('../config/config_uav5_v2.yaml')
-
-    controller = MainController(simulation_params, sensor=MockSensor())
-    controller.run()
